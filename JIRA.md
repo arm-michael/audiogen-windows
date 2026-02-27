@@ -151,6 +151,24 @@ As a Windows user receiving the binary, I want clear instructions for downloadin
 
 ---
 
+---
+
+### WIN-1.5 — BUG: CMake path escaping on Windows Actions runner
+
+**Status:** `[x]` Done — PR #5 merged
+**Severity:** SEV-1 (blocks all CI builds)
+**Found:** CI run 22504607061 — `build-windows` job, Configure CMake step
+**Root cause:** GitHub Actions `windows-latest` provides workspace path with backslashes (`D:\a\...`). CMake interprets `\a` as an escape sequence. TFLite `CMakeLists.txt:746` fails with `Invalid character escape '\a'` for every source file path containing `\a`.
+**Fix:** `file(TO_CMAKE_PATH "${TF_SRC_PATH}" TF_SRC_PATH_NORMALIZED)` normalizes backslashes to forward slashes before `TENSORFLOW_SOURCE_DIR` is set.
+
+**Tasks:**
+- [x] Identify root cause from CI logs
+- [x] Apply `file(TO_CMAKE_PATH)` fix to `CMakeLists.txt`
+- [x] PR, squash merge, branch cleanup
+- [x] Update JIRA.md push log
+
+---
+
 ## Backlog
 
 | ID | Title | Priority | Notes |
@@ -173,6 +191,7 @@ As a Windows user receiving the binary, I want clear instructions for downloadin
 | 2026-02-27 | build/WIN-1.2-cmake-windows-compat | #2 | WIN-1.2 ✅ | build(cmake): sentencepiece lib, flatc placeholder, SME2 conditional |
 | 2026-02-27 | build/WIN-1.3-github-actions-pipeline | #3 | WIN-1.3 ✅ | build(ci): GitHub Actions build + smoke test pipeline |
 | 2026-02-27 | docs/WIN-1.4-windows-readme | #4 | WIN-1.4 ✅ | docs(audiogen): Windows CLI user guide |
+| 2026-02-27 | fix/WIN-1.5-cmake-path-normalization | #5 | WIN-1.5 ✅ | fix(cmake): normalize TF_SRC_PATH backslashes — CI SEV-1 fix |
 
 ---
 
