@@ -46,6 +46,36 @@ else()
   set(TENSORFLOW_SOURCE_DIR ${TF_SRC_PATH_NORMALIZED} CACHE STRING "" FORCE)
 endif()
 
+# Patch TFLite model_building.h for MSVC (C2248 friend access resolution).
+#
+# MSVC requires a forward declaration of a class to appear before a
+# 'friend class X' declaration in another class can grant access to private
+# members. In model_building.h, Buffer declares 'friend class Tensor' but
+# Tensor is only defined later in the same header. GCC/Clang resolve this
+# correctly; MSVC does not and reports C2248 when Tensor's constructor
+# accesses Buffer::builder_. Fix: insert 'class Tensor;' immediately before
+# the Buffer class definition so MSVC sees the forward declaration first.
+if(WIN32)
+  set(_MODEL_BUILDING_H
+      "${TENSORFLOW_SOURCE_DIR}/tensorflow/lite/core/model_building.h")
+  file(READ "${_MODEL_BUILDING_H}" _mbh)
+  string(FIND "${_mbh}" "// WIN32_PATCH" _already_patched)
+  if(_already_patched EQUAL -1)
+    string(REPLACE
+      "class [[nodiscard]] Buffer {"
+      "class [[nodiscard]] Tensor; // WIN32_PATCH: forward decl for MSVC friend access\nclass [[nodiscard]] Buffer {"
+      _mbh_patched "${_mbh}")
+    file(WRITE "${_MODEL_BUILDING_H}" "${_mbh_patched}")
+    message(STATUS "Applied MSVC patch to model_building.h (C2248 friend fix)")
+  else()
+    message(STATUS "model_building.h already patched, skipping")
+  endif()
+  unset(_MODEL_BUILDING_H)
+  unset(_mbh)
+  unset(_mbh_patched)
+  unset(_already_patched)
+endif()
+
 set(FLATBUFFERS_SOURCE_DIR ${TENSORFLOW_SOURCE_DIR}/tensorflow/lite/tools/cmake/native_tools/flatbuffers)
 set(FLATBUFFERS_BIN_DIR ${CMAKE_BINARY_DIR}/flatbuffers-host-bin)
 set(SENTENCEPIECE_SOURCE_DIR ${CMAKE_BINARY_DIR}/sentencepiece)
