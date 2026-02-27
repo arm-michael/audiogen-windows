@@ -37,7 +37,13 @@ if(NOT TF_SRC_PATH)
   set(TENSORFLOW_SOURCE_DIR ${tensorflow_src_SOURCE_DIR} CACHE STRING "" FORCE)
 
 else()
-  set(TENSORFLOW_SOURCE_DIR ${TF_SRC_PATH} CACHE STRING "" FORCE)
+  # Normalize to forward slashes. On Windows, CMake string parsing treats
+  # backslashes as escape characters (\a, \t, etc.), so a path like
+  # D:\a\repo\tf_src causes "Invalid character escape '\a'" errors inside
+  # TFLite's own CMakeLists.txt. file(TO_CMAKE_PATH) converts to forward
+  # slashes on all platforms, making the path safe for CMake string context.
+  file(TO_CMAKE_PATH "${TF_SRC_PATH}" TF_SRC_PATH_NORMALIZED)
+  set(TENSORFLOW_SOURCE_DIR ${TF_SRC_PATH_NORMALIZED} CACHE STRING "" FORCE)
 endif()
 
 set(FLATBUFFERS_SOURCE_DIR ${TENSORFLOW_SOURCE_DIR}/tensorflow/lite/tools/cmake/native_tools/flatbuffers)
