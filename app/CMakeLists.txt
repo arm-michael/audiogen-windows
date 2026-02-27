@@ -68,7 +68,11 @@ ExternalProject_Add(
 
 #Get the path to the sentencepiece lib
 ExternalProject_Get_Property(sentencepiece_src BINARY_DIR)
-set(SENTENCEPIECE_LIB ${BINARY_DIR}/src/libsentencepiece.a)
+if(WIN32)
+  set(SENTENCEPIECE_LIB ${BINARY_DIR}/src/Release/sentencepiece.lib)
+else()
+  set(SENTENCEPIECE_LIB ${BINARY_DIR}/src/libsentencepiece.a)
+endif()
 
 ## Step 4: Build the audiogen app ---
 # Define source
@@ -76,12 +80,22 @@ set(SRCS audiogen.cpp)
 
 add_executable(audiogen ${SRCS})
 
-set(XNNPACK_ENABLE_ARM_SME2 ON CACHE BOOL "" FORCE)
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "^(aarch64|arm64|ARM64)")
+  set(XNNPACK_ENABLE_ARM_SME2 ON CACHE BOOL "" FORCE)
+else()
+  set(XNNPACK_ENABLE_ARM_SME2 OFF CACHE BOOL "" FORCE)
+endif()
 set(TFLITE_HOST_TOOLS_DIR "${FLATBUFFERS_BIN_DIR}/_deps/flatbuffers-build" CACHE PATH "Host tools directory")
 
 # Because flatc is not available at configure time,
-# this workaround places a placeholder (an empty file called flatc) at the expected install location.
-file(WRITE ${FLATBUFFERS_BIN_DIR}/_deps/flatbuffers-build/flatc "")
+# this workaround places a placeholder at the expected install location.
+# On Windows, the MSVC build produces flatc.exe; on Unix it produces flatc.
+if(WIN32)
+  set(FLATC_PLACEHOLDER ${FLATBUFFERS_BIN_DIR}/_deps/flatbuffers-build/flatc.exe)
+else()
+  set(FLATC_PLACEHOLDER ${FLATBUFFERS_BIN_DIR}/_deps/flatbuffers-build/flatc)
+endif()
+file(WRITE ${FLATC_PLACEHOLDER} "")
 
 # LiteRT CMake configure stage
 add_subdirectory(
@@ -91,7 +105,7 @@ add_subdirectory(
 )
 
 # Delete the placeholder flatc file after the LiteRT CMake configuration stage is complete.
-file(REMOVE ${FLATBUFFERS_BIN_DIR}/_deps/flatbuffers-build/flatc "")
+file(REMOVE ${FLATC_PLACEHOLDER} "")
 
 add_dependencies(tensorflow-lite flatc_build)
 
