@@ -24,3 +24,23 @@ app/build/**
 *.pb
 *variable*
 saved_model/**
+
+# windows build artifacts
+*.exe
+*.lib
+*.pdb
+*.ilk
+*.exp
+
+# macos
+.DS_Store
+
+# python artifacts
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+*.whl
+
+# ide
+.idea/
