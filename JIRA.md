@@ -11,7 +11,7 @@ Status legend: `[ ]` To Do · `[~]` In Progress · `[x]` Done · `[!]` Blocked
 
 ### WIN-1: Port AudioGen C++ CLI to Windows x64
 
-**Status:** `[ ]` To Do
+**Status:** `[x]` Done — all stories merged, CI pipeline live
 **Goal:** Produce a working `audiogen.exe` for Windows 10/11 x64 built entirely via GitHub Actions, requiring zero Windows machine for the developer.
 **Spec:** `spec.md`
 **Acceptance:** GitHub Actions `windows-latest` build passes; `audiogen.exe -h` runs on Windows; macOS build unbroken.
@@ -22,7 +22,7 @@ Status legend: `[ ]` To Do · `[~]` In Progress · `[x]` Done · `[!]` Blocked
 
 ### WIN-1.1 — Portable C++ Source (audiogen.cpp)
 
-**Status:** `[ ]` To Do
+**Status:** `[x]` Done — PR #1 merged
 **Priority:** P0 — blocks all other stories
 **Parent:** WIN-1
 **Files:** `app/audiogen.cpp`
@@ -42,10 +42,10 @@ As a developer, I want `audiogen.cpp` to compile with MSVC on Windows without mo
 - Regression: macOS build (`cmake -DCMAKE_BUILD_TYPE=Release ..`) still passes
 
 **Tasks:**
-- [ ] Remove `#include <unistd.h>`
-- [ ] Add `#ifdef _WIN32` block with portable `getopt`, `optind`, `optarg`
-- [ ] Add `#else` branch restoring `#include <unistd.h>` for Unix
-- [ ] Verify no other POSIX-only includes exist in the file
+- [x] Remove `#include <unistd.h>`
+- [x] Add `#ifdef _WIN32` block with portable `getopt`, `optind`, `optarg`
+- [x] Add `#else` branch restoring `#include <unistd.h>` for Unix
+- [x] Verify no other POSIX-only includes exist in the file
 
 **Rollback:** Revert the single `#ifdef` block; no other files touched.
 
@@ -53,7 +53,7 @@ As a developer, I want `audiogen.cpp` to compile with MSVC on Windows without mo
 
 ### WIN-1.2 — CMake Windows Compatibility
 
-**Status:** `[ ]` To Do
+**Status:** `[x]` Done — PR #2 merged
 **Priority:** P0 — blocks WIN-1.3
 **Parent:** WIN-1
 **Files:** `app/CMakeLists.txt`
@@ -73,10 +73,10 @@ As a developer, I want `CMakeLists.txt` to build correctly on both Windows (MSVC
 - Regression: macOS CMake configure and build still succeed
 
 **Tasks:**
-- [ ] Make `SENTENCEPIECE_LIB` conditional on `WIN32` (`.lib` vs `.a`)
-- [ ] Extract flatc placeholder path to `FLATC_PLACEHOLDER` variable with `WIN32` conditional (`.exe` suffix)
-- [ ] Replace `file(WRITE ...)` and `file(REMOVE ...)` to use `FLATC_PLACEHOLDER`
-- [ ] Make `XNNPACK_ENABLE_ARM_SME2` conditional on `CMAKE_SYSTEM_PROCESSOR` matching aarch64/arm64
+- [x] Make `SENTENCEPIECE_LIB` conditional on `WIN32` (`.lib` vs `.a`)
+- [x] Extract flatc placeholder path to `FLATC_PLACEHOLDER` variable with `WIN32` conditional (`.exe` suffix)
+- [x] Replace `file(WRITE ...)` and `file(REMOVE ...)` to use `FLATC_PLACEHOLDER`
+- [x] Make `XNNPACK_ENABLE_ARM_SME2` conditional on `CMAKE_SYSTEM_PROCESSOR` matching aarch64/arm64
 
 **Rollback:** Revert `CMakeLists.txt`; macOS builds are unaffected.
 
@@ -84,7 +84,7 @@ As a developer, I want `CMakeLists.txt` to build correctly on both Windows (MSVC
 
 ### WIN-1.3 — GitHub Actions Windows CI Pipeline
 
-**Status:** `[ ]` To Do
+**Status:** `[x]` Done — PR #3 merged, workflow live
 **Priority:** P0
 **Parent:** WIN-1
 **Files:** `.github/workflows/build-windows.yml` *(new file)*
@@ -110,16 +110,16 @@ As a developer without a Windows machine, I want a GitHub Actions workflow that 
 - Cache: second run restores TF source from cache (verify via Actions timing)
 
 **Tasks:**
-- [ ] Create `.github/workflows/build-windows.yml`
-- [ ] Add checkout step
-- [ ] Add TF source cache step (key: TF commit SHA)
-- [ ] Add CMake configure step (`Visual Studio 17 2022`, x64, `Release`, `TF_SRC_PATH`)
-- [ ] Add CMake build step (parallel)
-- [ ] Add artifact collection and upload step (30-day retention)
-- [ ] Add `test-windows` job depending on `build-windows`
-- [ ] Add smoke test steps in test job
-- [ ] Add `workflow_dispatch` trigger
-- [ ] Verify `paths` filter covers `app/**` and the workflow file itself
+- [x] Create `.github/workflows/audiogen-build-windows.yml`
+- [x] Add checkout step
+- [x] Add TF source cache step (key: TF commit SHA)
+- [x] Add CMake configure step (`Visual Studio 17 2022`, x64, `Release`, `TF_SRC_PATH`)
+- [x] Add CMake build step (parallel)
+- [x] Add artifact collection and upload step (30-day retention)
+- [x] Add `smoke-test-windows` job depending on `build-windows`
+- [x] Add smoke test steps in test job
+- [x] Add `workflow_dispatch` trigger
+- [x] Verify `paths` filter covers `app/**` and the workflow file itself
 
 **Rollback:** Delete the workflow file; no existing builds are affected.
 
@@ -127,7 +127,7 @@ As a developer without a Windows machine, I want a GitHub Actions workflow that 
 
 ### WIN-1.4 — Distribution Package & Documentation
 
-**Status:** `[ ]` To Do
+**Status:** `[x]` Done — PR #4 merged
 **Priority:** P1
 **Parent:** WIN-1
 **Files:** `app/README-windows.md` *(new file)*
@@ -142,10 +142,10 @@ As a Windows user receiving the binary, I want clear instructions for downloadin
 - Given the README, when a user encounters a missing model file error, then the README explains where to get model files.
 
 **Tasks:**
-- [ ] Write `app/README-windows.md` covering: prerequisites, download, directory layout, model setup, usage examples, common errors
-- [ ] Document the expected directory structure (`models/` subfolder with all `.tflite` files and `spiece.model`)
-- [ ] Document the `ffmpeg` command for converting audio input files (style transfer use case)
-- [ ] Add known limitations section (no SME2, ~2-3x slower than Arm native)
+- [x] Write `app/README-windows.md` covering: prerequisites, download, directory layout, model setup, usage examples, common errors
+- [x] Document the expected directory structure (`models/` subfolder with all `.tflite` files and `spiece.model`)
+- [x] Document the `ffmpeg` command for converting audio input files (style transfer use case)
+- [x] Add known limitations section (no SME2, ~2-3x slower than Arm native)
 
 **Rollback:** No code changes; documentation only.
 
@@ -168,7 +168,11 @@ As a Windows user receiving the binary, I want clear instructions for downloadin
 
 | Date | Branch | PR | Stories Updated | Summary |
 |------|--------|----|-----------------|---------|
-| — | — | — | — | No pushes yet |
+| 2026-02-27 | main | — | — | chore: scaffold — planning docs, extended .gitignore |
+| 2026-02-27 | feat/WIN-1.1-portable-getopt | #1 | WIN-1.1 ✅ | fix(audiogen): portable getopt for Windows MSVC |
+| 2026-02-27 | build/WIN-1.2-cmake-windows-compat | #2 | WIN-1.2 ✅ | build(cmake): sentencepiece lib, flatc placeholder, SME2 conditional |
+| 2026-02-27 | build/WIN-1.3-github-actions-pipeline | #3 | WIN-1.3 ✅ | build(ci): GitHub Actions build + smoke test pipeline |
+| 2026-02-27 | docs/WIN-1.4-windows-readme | #4 | WIN-1.4 ✅ | docs(audiogen): Windows CLI user guide |
 
 ---
 
