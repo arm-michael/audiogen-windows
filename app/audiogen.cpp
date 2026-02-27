@@ -31,7 +31,27 @@
 #include <cstdint>
 #include <cstring>
 #include <fstream>
+#ifdef _WIN32
+// MSVC does not provide POSIX getopt. Supply a minimal single-char
+// implementation covering exactly the flags used in main().
+static int   optind  = 1;
+static char* optarg  = nullptr;
+static int getopt(int argc, char* const argv[], const char* optstring) {
+    if (optind >= argc || argv[optind] == nullptr || argv[optind][0] != '-')
+        return -1;
+    const char opt = argv[optind][1];
+    const char* p  = strchr(optstring, opt);
+    if (!p) return '?';
+    ++optind;
+    if (*(p + 1) == ':') {
+        if (optind >= argc) return '?';
+        optarg = argv[optind++];
+    }
+    return static_cast<int>(opt);
+}
+#else
 #include <unistd.h>
+#endif
 #include <iterator>
 #include <random>
 #include <string>
