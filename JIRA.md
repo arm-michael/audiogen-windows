@@ -153,6 +153,24 @@ As a Windows user receiving the binary, I want clear instructions for downloadin
 
 ---
 
+### WIN-1.7 — BUG: PowerShell smoke test stderr capture
+
+**Status:** `[x]` Done — PR #7 merged
+**Severity:** SEV-3 (false-negative test, binary correct)
+**Root cause:** `audiogen.exe` writes all output via `fprintf(stderr,...)`. PowerShell's `2>&1` wraps stderr as `ErrorRecord` objects. `-match`/`-notmatch` against a mixed collection filtered per-element — non-matching elements made `-notmatch` return non-empty even when "Usage" was present.
+**Fix:** `| Out-String` flattens the collection into a single string before regex match.
+
+---
+
+### WIN-1.8 — BUG: Smoke test steps fail due to audiogen.exe exit code propagation
+
+**Status:** `[x]` Done — PR #8 merged — **first green build achieved**
+**Severity:** SEV-3 (false-negative test, binary correct)
+**Root cause:** `audiogen.exe` exits 1 by design for `-h` and all error cases (`EXIT_FAILURE`). PowerShell propagates `$LASTEXITCODE` as the step exit code when the script ends without an explicit `exit`. Steps printed `PASS` then failed on inherited exit code.
+**Fix:** Add `exit 0` at the end of each smoke test step after all assertion checks pass.
+
+---
+
 ### WIN-1.5 — BUG: CMake path escaping on Windows Actions runner
 
 **Status:** `[x]` Done — PR #5 merged
@@ -192,6 +210,10 @@ As a Windows user receiving the binary, I want clear instructions for downloadin
 | 2026-02-27 | build/WIN-1.3-github-actions-pipeline | #3 | WIN-1.3 ✅ | build(ci): GitHub Actions build + smoke test pipeline |
 | 2026-02-27 | docs/WIN-1.4-windows-readme | #4 | WIN-1.4 ✅ | docs(audiogen): Windows CLI user guide |
 | 2026-02-27 | fix/WIN-1.5-cmake-path-normalization | #5 | WIN-1.5 ✅ | fix(cmake): normalize TF_SRC_PATH backslashes — CI SEV-1 fix |
+| 2026-02-27 | fix/WIN-1.6-tflite-msvc-friend-access | #6 | WIN-1.6 ✅ | fix(cmake): patch TFLite model_building.h for MSVC C2248 — CI SEV-1 fix |
+| 2026-02-27 | fix/WIN-1.7-smoke-test-stderr-capture | #7 | WIN-1.7 ✅ | fix(ci): pipe smoke test output through Out-String for stderr capture |
+| 2026-02-27 | fix/WIN-1.8-smoke-test-exit-code | #8 | WIN-1.8 ✅ | fix(ci): add explicit exit 0 to smoke test steps |
+| 2026-02-27 | — | — | — | ✅ FIRST GREEN BUILD — run 22507671270, both jobs passed |
 
 ---
 
