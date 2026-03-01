@@ -11,10 +11,10 @@ Status legend: `[ ]` To Do · `[~]` In Progress · `[x]` Done · `[!]` Blocked
 
 ### WIN-1: Port AudioGen C++ CLI to Windows x64
 
-**Status:** `[x]` Done — all stories merged, CI pipeline live
+**Status:** `[~]` In Progress — binary builds and smoke tests pass; end-to-end inference pending (WIN-1.9, WIN-1.10)
 **Goal:** Produce a working `audiogen.exe` for Windows 10/11 x64 built entirely via GitHub Actions, requiring zero Windows machine for the developer.
 **Spec:** `spec.md`
-**Acceptance:** GitHub Actions `windows-latest` build passes; `audiogen.exe -h` runs on Windows; macOS build unbroken.
+**Acceptance:** GitHub Actions `windows-latest` build passes; `audiogen.exe -h` runs on Windows; macOS build unbroken; end-to-end inference produces a non-zero-byte WAV.
 
 ---
 
@@ -171,6 +171,75 @@ As a Windows user receiving the binary, I want clear instructions for downloadin
 
 ---
 
+### WIN-1.9 — Upload model files to GitHub Release
+
+**Status:** `[ ]` To Do — user action, one-time
+**Priority:** P0 — blocks WIN-1.10
+**Parent:** WIN-1
+**Files:** GitHub Release assets (not tracked in git)
+
+**User Story:**
+As a developer, I want the 5 model files available in a GitHub Release so that the CI inference test can download them without baking large binaries into the repository.
+
+**Acceptance Criteria:**
+- Given a GitHub Release tagged `audiogen-models-v1`, when the release exists, then all 5 files are present as release assets.
+- Given the release assets, when downloaded via `gh release download audiogen-models-v1`, then all 5 files are present and non-zero in size.
+
+**Prerequisites:**
+- Part 1 model conversion complete (see plan: `audiogen-inference-end-to-end.md`).
+- All 5 output files in hand:
+  - `conditioners_float32.tflite` (from `conditioners_tflite/conditioners_float32.tflite`)
+  - `dit_model.tflite`
+  - `autoencoder_model.tflite`
+  - `autoencoder_encoder_model.tflite`
+  - `spiece.model` (from `conditioners_tflite/spiece.model`)
+
+**Tasks:**
+- [ ] Collect all 5 model files from conversion output
+- [ ] Create GitHub Release tagged `audiogen-models-v1` on the repository
+- [ ] Upload all 5 files as release assets
+- [ ] Verify download: `gh release download audiogen-models-v1 --dir /tmp/verify && ls -lh /tmp/verify`
+
+**Rollback:** Delete the release assets and re-upload corrected files; the workflow tag input is parameterised so a new tag can be used without editing the workflow.
+
+---
+
+### WIN-1.10 — End-to-end inference test CI job
+
+**Status:** `[ ]` To Do — blocked by WIN-1.9
+**Priority:** P0
+**Parent:** WIN-1
+**Files:** `.github/workflows/audiogen-inference-test-windows.yml` *(new file)*
+**Depends on:** WIN-1.9 (model files in GitHub Release), WIN-1.3 (build pipeline live)
+
+**User Story:**
+As a developer without a Windows machine, I want a manually-triggered CI job that runs real audiogen inference on Windows x64 and uploads the output WAV as a downloadable artifact, so that I can verify end-to-end generation works before integrating with the Ableton SDK.
+
+**Acceptance Criteria:**
+- Given a `workflow_dispatch` trigger, when the workflow runs, then it downloads `audiogen.exe` from the latest successful build artifact and all 5 model files from the `audiogen-models-v1` GitHub Release.
+- Given all files downloaded, when `audiogen.exe -m models -p "jazz piano" -t 4 -n 4 -l 5 -o output.wav` runs, then it exits 0.
+- Given a successful inference run, when the job completes, then an `audiogen-output` artifact containing a non-zero-byte `output.wav` is available for download.
+- Given the workflow inputs, when the user overrides prompt, audio length, steps, threads, or release tag, then those values are passed to the binary.
+
+**Test Design:**
+- Trigger: `workflow_dispatch` from Actions tab fires the job.
+- Binary download: `gh run list --workflow audiogen-build-windows.yml --status success` returns a run ID; artifact is downloaded to `dist/`.
+- Model download: `gh release download audiogen-models-v1` populates `models/` with all 5 files.
+- Guard step: verifies all 5 expected filenames are present before spending inference time.
+- Inference step: `audiogen.exe` exits 0; `output.wav` is created.
+- WAV verification: `output.wav` exists and is non-zero bytes.
+- Artifact upload: `audiogen-output` artifact contains `output.wav`.
+
+**Tasks:**
+- [x] Create `.github/workflows/audiogen-inference-test-windows.yml`
+- [ ] Trigger `workflow_dispatch` after WIN-1.9 is complete
+- [ ] Confirm `audiogen-output` artifact contains a playable WAV
+- [ ] Mark WIN-1 epic `[x]` Done
+
+**Rollback:** Delete the workflow file; no existing jobs or builds are affected.
+
+---
+
 ### WIN-1.5 — BUG: CMake path escaping on Windows Actions runner
 
 **Status:** `[x]` Done — PR #5 merged
@@ -204,6 +273,7 @@ As a Windows user receiving the binary, I want clear instructions for downloadin
 
 | Date | Branch | PR | Stories Updated | Summary |
 |------|--------|----|-----------------|---------|
+| 2026-02-27 | feat/WIN-1.10-inference-test-ci | — | WIN-1.9 📋, WIN-1.10 [~] | build(ci): end-to-end inference test workflow + JIRA stories WIN-1.9/1.10 |
 | 2026-02-27 | main | — | — | chore: scaffold — planning docs, extended .gitignore |
 | 2026-02-27 | feat/WIN-1.1-portable-getopt | #1 | WIN-1.1 ✅ | fix(audiogen): portable getopt for Windows MSVC |
 | 2026-02-27 | build/WIN-1.2-cmake-windows-compat | #2 | WIN-1.2 ✅ | build(cmake): sentencepiece lib, flatc placeholder, SME2 conditional |

@@ -22,8 +22,13 @@ app/build/**
 *.tflite
 *.onnx
 *.pb
+*.ckpt
 *variable*
 saved_model/**
+spiece.model
+
+# python venvs
+.venv/
 
 # windows build artifacts
 *.exe
