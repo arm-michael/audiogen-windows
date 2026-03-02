@@ -11,10 +11,10 @@ Status legend: `[ ]` To Do · `[~]` In Progress · `[x]` Done · `[!]` Blocked
 
 ### WIN-1: Port AudioGen C++ CLI to Windows x64
 
-**Status:** `[~]` In Progress — binary builds and smoke tests pass; end-to-end inference pending (WIN-1.9, WIN-1.10)
+**Status:** `[x]` Done — end-to-end inference confirmed working on Windows x64
 **Goal:** Produce a working `audiogen.exe` for Windows 10/11 x64 built entirely via GitHub Actions, requiring zero Windows machine for the developer.
 **Spec:** `spec.md`
-**Acceptance:** GitHub Actions `windows-latest` build passes; `audiogen.exe -h` runs on Windows; macOS build unbroken; end-to-end inference produces a non-zero-byte WAV.
+**Acceptance:** GitHub Actions `windows-latest` build passes; `audiogen.exe -h` runs on Windows; macOS build unbroken; end-to-end inference produces a non-zero-byte WAV. ✅ All criteria met 2026-03-02.
 
 ---
 
@@ -173,7 +173,7 @@ As a Windows user receiving the binary, I want clear instructions for downloadin
 
 ### WIN-1.9 — Upload model files to GitHub Release
 
-**Status:** `[ ]` To Do — user action, one-time
+**Status:** `[x]` Done — release audiogen-models-v1 live on arm-michael/ML-examples
 **Priority:** P0 — blocks WIN-1.10
 **Parent:** WIN-1
 **Files:** GitHub Release assets (not tracked in git)
@@ -206,7 +206,7 @@ As a developer, I want the 5 model files available in a GitHub Release so that t
 
 ### WIN-1.10 — End-to-end inference test CI job
 
-**Status:** `[ ]` To Do — blocked by WIN-1.9
+**Status:** `[x]` Done — inference confirmed 2026-03-02, output.wav plays correctly
 **Priority:** P0
 **Parent:** WIN-1
 **Files:** `.github/workflows/audiogen-inference-test-windows.yml` *(new file)*
@@ -273,6 +273,7 @@ As a developer without a Windows machine, I want a manually-triggered CI job tha
 
 | Date | Branch | PR | Stories Updated | Summary |
 |------|--------|----|-----------------|---------|
+| 2026-03-02 | main | — | WIN-1 ✅, WIN-1.9 ✅, WIN-1.10 ✅ | ✅ END-TO-END INFERENCE CONFIRMED — output.wav plays correctly on Windows x64 |
 | 2026-02-27 | feat/WIN-1.10-inference-test-ci | — | WIN-1.9 📋, WIN-1.10 [~] | build(ci): end-to-end inference test workflow + JIRA stories WIN-1.9/1.10 |
 | 2026-02-27 | main | — | — | chore: scaffold — planning docs, extended .gitignore |
 | 2026-02-27 | feat/WIN-1.1-portable-getopt | #1 | WIN-1.1 ✅ | fix(audiogen): portable getopt for Windows MSVC |

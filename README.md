@@ -54,6 +54,36 @@ The instructions to convert the three submodules of the Stable Audio Open Small 
 ## Part 2 - Build instructions
 The instructions to build the audio generation application to run on Android™ are detailed in the [README.md](./app/README.md) file in the `app/` folder. Instructions are valid for both Linux® and macOS® systems.
 
+## Part 3 - Windows x64
+
+`audiogen.exe` is supported on Windows 10/11 x64. No Windows machine or local build environment is required — the binary is built and tested entirely via GitHub Actions.
+
+### Getting the binary
+
+Download `audiogen.exe` from the latest GitHub Actions run:
+
+1. Go to **Actions → AudioGen — Build Windows x64**
+2. Open the most recent successful run
+3. Download the **`audiogen-windows-x64`** artifact
+
+### Running inference on Windows
+
+Pre-converted model files are available in the [GitHub Release](../../releases/tag/audiogen-models-v1). Download all 5 files and place them in a `models\` folder next to the binary, then run:
+
+```cmd
+audiogen.exe -m models -p "jazz piano" -t 4 -n 8 -l 10
+```
+
+See [app/README-windows.md](./app/README-windows.md) for full setup instructions, directory layout, and troubleshooting.
+
+### CI inference test
+
+To run end-to-end inference on a Windows GitHub Actions runner without a local Windows machine:
+
+1. Go to **Actions → AudioGen — Inference Test Windows x64**
+2. Click **Run workflow**
+3. Download the **`audiogen-output`** artifact and play `output.wav`
+
 ## Trademarks
 
 * Arm® and KleidiAI™ are registered trademarks or trademarks of Arm® Limited (or its subsidiaries) in the US and/or
