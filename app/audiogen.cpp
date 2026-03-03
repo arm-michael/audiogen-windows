@@ -18,7 +18,9 @@
 
 // LiteRT header files
 #include "tensorflow/lite/c/common.h"
+#ifndef AUDIOGEN_DISABLE_XNNPACK
 #include "tensorflow/lite/delegates/xnnpack/xnnpack_delegate.h"
+#endif
 #include "tensorflow/lite/interpreter.h"
 #include "tensorflow/lite/kernels/register.h"
 #include "tensorflow/lite/model.h"
@@ -147,11 +149,13 @@ static std::vector<int32_t> convert_prompt_to_ids(const std::string& prompt, con
     return ids;
 }
 
+#ifndef AUDIOGEN_DISABLE_XNNPACK
 struct TfLiteDelegateDeleter {
     void operator()(TfLiteDelegate* delegate) const {
         TfLiteXNNPackDelegateDelete(delegate);
     }
 };
+#endif
 
 static size_t get_num_elems(const TfLiteIntArray* dims) {
     size_t x = 1;
@@ -283,6 +287,7 @@ static void encode_audio(const std::string& audio_input_path, const std::string&
     read_wav(audio_input_path, left_ch_input, right_ch_input);
     fprintf(stderr, "Using %s as an audio input file...\n", audio_input_path.c_str());
 
+#ifndef AUDIOGEN_DISABLE_XNNPACK
     // Create the XNNPACK delegate options
     TfLiteXNNPackDelegateOptions xnnpack_options = TfLiteXNNPackDelegateOptionsDefault();
     xnnpack_options.num_threads = num_threads;
@@ -295,6 +300,7 @@ static void encode_audio(const std::string& audio_input_path, const std::string&
     xnnpack_options.flags |= TFLITE_XNNPACK_DELEGATE_FLAG_VARIABLE_OPERATORS;
     xnnpack_options.flags |= TFLITE_XNNPACK_DELEGATE_FLAG_FORCE_FP16;
     std::unique_ptr<TfLiteDelegate, TfLiteDelegateDeleter> xnnpack_delegate_fp16(TfLiteXNNPackDelegateCreate(&xnnpack_options));
+#endif
 
     // Allocate the encoder in case of an input file
     std::unique_ptr<tflite::FlatBufferModel> autoencoder_encoder_model = tflite::FlatBufferModel::BuildFromFile(encoder_model_path.c_str());
@@ -308,10 +314,12 @@ static void encode_audio(const std::string& audio_input_path, const std::string&
     autoencoder_encoder_builder(&autoencoder_encoder_interpreter);
     AUDIOGEN_CHECK(autoencoder_encoder_interpreter != nullptr);
 
+#ifndef AUDIOGEN_DISABLE_XNNPACK
     // Add the delegate to the interpreter
     if (autoencoder_encoder_interpreter->ModifyGraphWithDelegate(xnnpack_delegate_fp16.get()) != kTfLiteOk) {
         AUDIOGEN_CHECK(false && "Failed to apply XNNPACK delegate");
     }
+#endif
 
     // Allocate tensors
     AUDIOGEN_CHECK(autoencoder_encoder_interpreter->AllocateTensors() == kTfLiteOk);
@@ -531,6 +539,7 @@ int main(int32_t argc, char** argv) {
     autoencoder_builder(&autoencoder_interpreter);
     AUDIOGEN_CHECK(autoencoder_interpreter != nullptr);
 
+#ifndef AUDIOGEN_DISABLE_XNNPACK
     // Create the XNNPACK delegate options
     TfLiteXNNPackDelegateOptions xnnpack_options = TfLiteXNNPackDelegateOptionsDefault();
     xnnpack_options.num_threads = num_threads;
@@ -562,6 +571,7 @@ int main(int32_t argc, char** argv) {
     if (autoencoder_interpreter->ModifyGraphWithDelegate(xnnpack_delegate_fp16.get()) != kTfLiteOk) {
         AUDIOGEN_CHECK(false && "Failed to apply XNNPACK delegate");
     }
+#endif
 
     // ----- Allocate the tensors
     // ----------------------------------

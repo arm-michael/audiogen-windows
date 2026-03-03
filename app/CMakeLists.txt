@@ -174,4 +174,13 @@ target_link_libraries(audiogen
 # Ensure dependency build order
 add_dependencies(audiogen flatc_build sentencepiece_src)
 
+# When cross-compiling for ARM64 on MSVC, XNNPACK cannot be built due to
+# toolchain incompatibilities (arm_fp16.h missing, flatc host/target arch
+# mismatch). Disable XNNPACK at the source level so audiogen.cpp skips the
+# delegate setup and uses TFLite reference kernels instead.
+# Full XNNPACK support on ARM64 Windows requires Clang-cl (see WIN-2.3).
+if(WIN32 AND CMAKE_SYSTEM_PROCESSOR MATCHES "ARM64")
+  target_compile_definitions(audiogen PRIVATE AUDIOGEN_DISABLE_XNNPACK)
+endif()
+
 
