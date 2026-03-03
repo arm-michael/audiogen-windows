@@ -313,13 +313,46 @@ As a developer, I want a manually-triggered CI job that runs real AudioGen infer
 
 ---
 
+### WIN-2.3 — ARM64 XNNPACK support via Clang-cl
+
+**Status:** `[ ]` To Do
+**Priority:** P2
+**Parent:** WIN-2
+**Depends on:** WIN-2.1 green
+
+**User Story:**
+As a developer, I want the ARM64 binary to use XNNPACK acceleration (including SME2) on Snapdragon X Elite, so that inference performance matches what the hardware is capable of.
+
+**Context:**
+WIN-2.1 builds a working ARM64 binary with `-DTFLITE_ENABLE_XNNPACK=OFF` because MSVC
+ARM64 cannot compile XNNPACK's kernels:
+- `arm_fp16.h` (GCC/Clang-only header) missing from MSVC ARM64 toolchain
+- TFLite's internal `flatc` build produces an ARM64 binary that cannot run on the x64
+  host during cross-compilation (`ERROR_EXE_MACHINE_TYPE_MISMATCH`)
+
+The fix is to use Clang-cl (LLVM front-end with MSVC ABI) as the compiler for the ARM64
+build. Clang-cl ships with Visual Studio 2022 and supports `arm_fp16.h` natively. The
+flatc host-tool issue may also resolve with Clang-cl's toolchain.
+
+**Approach:**
+Add `-T ClangCL` to the CMake configure step alongside `-A ARM64`. Remove
+`-DTFLITE_ENABLE_XNNPACK=OFF`. Re-enable SME2 via CMakeLists.txt's existing
+`CMAKE_SYSTEM_PROCESSOR` conditional.
+
+**Acceptance Criteria:**
+- ARM64 build completes with Clang-cl and XNNPACK enabled
+- `audiogen.exe` runs on `windows-11-arm` with XNNPACK active (check log output)
+- SME2 code path active on Snapdragon X Elite (verify via `-DXNNPACK_ENABLE_ARM_SME2=ON`)
+
+---
+
 ## Backlog
 
 | ID | Title | Priority | Notes |
 |----|-------|----------|-------|
-| WIN-2.3 | macOS build in CI | P2 | Add macOS Actions job to catch regressions automatically |
-| WIN-2.4 | Codesign the exe | P3 | Needed for Windows Defender not to flag unsigned binary |
-| WIN-2.5 | GitHub Release automation | P2 | Publish tagged release with artifacts on `v*` tags |
+| WIN-2.4 | macOS build in CI | P2 | Add macOS Actions job to catch regressions automatically |
+| WIN-2.5 | Codesign the exe | P3 | Needed for Windows Defender not to flag unsigned binary |
+| WIN-2.6 | GitHub Release automation | P2 | Publish tagged release with artifacts on `v*` tags |
 
 ---
 
@@ -329,6 +362,9 @@ As a developer, I want a manually-triggered CI job that runs real AudioGen infer
 
 | Date | Branch | PR | Stories Updated | Summary |
 |------|--------|----|-----------------|---------|
+| 2026-03-03 | main | — | WIN-2.3 📋 | docs(jira): add WIN-2.3 story — XNNPACK ARM64 support via Clang-cl |
+| 2026-03-03 | main | — | WIN-2.1 [~] | fix(ci): disable XNNPACK for ARM64 MSVC — arm_fp16.h + flatc host arch issues |
+| 2026-03-03 | main | — | WIN-2.1 [~] | fix(ci): flatc host arch fix + XNNPACK FP16 vector disable attempt |
 | 2026-03-02 | main | — | WIN-2.1 [~], WIN-2.2 [~] | build(ci): ARM64 cross-compile build + smoke test jobs + inference test workflow |
 | 2026-03-02 | main | — | — | chore(repo): migrate to arm-michael/audiogen-windows — subtree extract, path updates |
 | 2026-03-02 | main | — | WIN-1 ✅, WIN-1.9 ✅, WIN-1.10 ✅ | ✅ END-TO-END INFERENCE CONFIRMED — output.wav plays correctly on Windows x64 |
