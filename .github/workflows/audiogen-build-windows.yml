@@ -171,9 +171,9 @@ jobs:
           cmake -B build-arm64 `
                 -G "Visual Studio 17 2022" `
                 -A ARM64 `
+                -T ClangCL `
                 -DCMAKE_BUILD_TYPE=Release `
-                -DTF_SRC_PATH="${{ github.workspace }}\tf_src" `
-                -DTFLITE_ENABLE_XNNPACK=OFF
+                -DTF_SRC_PATH="${{ github.workspace }}\tf_src"
 
       - name: Build
         working-directory: app

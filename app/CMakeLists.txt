@@ -88,7 +88,7 @@ set(SENTENCEPIECE_SOURCE_DIR ${CMAKE_BINARY_DIR}/sentencepiece)
 # CMake 3.14+ propagates CMAKE_GENERATOR_PLATFORM (ARM64) to ExternalProjects,
 # which would produce an ARM64 flatc.exe that cannot run on the x64 host
 # (exit code 216 = ERROR_EXE_MACHINE_TYPE_MISMATCH). Force -A x64 to override.
-if(WIN32 AND CMAKE_SYSTEM_PROCESSOR MATCHES "ARM64")
+if(WIN32 AND CMAKE_GENERATOR_PLATFORM STREQUAL "ARM64")
   set(_FLATC_ARCH_ARG CMAKE_ARGS -A x64)
 else()
   set(_FLATC_ARCH_ARG "")
@@ -176,13 +176,5 @@ target_link_libraries(audiogen
 # Ensure dependency build order
 add_dependencies(audiogen flatc_build sentencepiece_src)
 
-# When cross-compiling for ARM64 on MSVC, XNNPACK cannot be built due to
-# toolchain incompatibilities (arm_fp16.h missing, flatc host/target arch
-# mismatch). Disable XNNPACK at the source level so audiogen.cpp skips the
-# delegate setup and uses TFLite reference kernels instead.
-# Full XNNPACK support on ARM64 Windows requires Clang-cl (see WIN-2.3).
-if(WIN32 AND CMAKE_GENERATOR_PLATFORM STREQUAL "ARM64")
-  target_compile_definitions(audiogen PRIVATE AUDIOGEN_DISABLE_XNNPACK)
-endif()
 
 
