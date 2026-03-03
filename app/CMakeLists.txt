@@ -129,15 +129,14 @@ if(CMAKE_SYSTEM_PROCESSOR MATCHES "^(aarch64|arm64|ARM64)" OR CMAKE_GENERATOR_PL
     # targets including TFLite/XNNPACK via FetchContent_MakeAvailable.
     include_directories(BEFORE "${CMAKE_CURRENT_SOURCE_DIR}/msvc_compat")
 
-    # _Float16 requires /std:c11 in MSVC. add_compile_options() with a
-    # COMPILE_LANGUAGE generator expression is silently ignored by the
-    # Visual Studio generator at directory scope (CMake limitation). The
-    # correct mechanism is CMAKE_C_STANDARD: CMake translates '11' directly
-    # into /std:c11 in the generated .vcxproj files for all C targets,
-    # including XNNPACK's fp16arith kernels that include arm_fp16.h.
-    # CACHE FORCE ensures subdirectory CMakeLists.txt cannot override it.
-    set(CMAKE_C_STANDARD 11 CACHE STRING "C standard" FORCE)
-    set(CMAKE_C_STANDARD_REQUIRED ON CACHE BOOL "" FORCE)
+    # MSVC has no half-precision type usable in C mode that arm_fp16.h can
+    # typedef as float16_t: __fp16 is C++ only, and _Float16 requires
+    # /std:c11 which does not propagate to FetchContent sub-projects via
+    # the VS generator. Disable the fp16arith scalar kernels so XNNPACK
+    # does not compile the arm_fp16.h-dependent f16-vbinary/gen/*.c files.
+    # NEON FP16 vector kernels (XNNPACK_ENABLE_ARM_FP16_VECTOR, default ON)
+    # are unaffected and still provide Snapdragon X Elite acceleration.
+    set(XNNPACK_ENABLE_ARM_FP16_SCALAR OFF CACHE BOOL "" FORCE)
   endif()
 else()
   set(XNNPACK_ENABLE_ARM_SME2 OFF CACHE BOOL "" FORCE)
