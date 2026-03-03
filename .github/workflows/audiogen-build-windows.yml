@@ -138,13 +138,12 @@ jobs:
           exit 0
 
   # ── ARM64 Build ────────────────────────────────────────────────────────────
-  # Cross-compiles on windows-latest (x64 host) targeting ARM64 using the
-  # Visual Studio 17 2022 ARM64 cross-compilation toolchain (-A ARM64).
-  # CMAKE_SYSTEM_PROCESSOR=ARM64 is set automatically by the VS generator,
-  # which enables the XNNPACK SME2 path in CMakeLists.txt for Snapdragon X Elite.
+  # Builds natively on windows-11-arm (Snapdragon X Elite). Native build
+  # avoids cross-compilation toolchain issues (assembler incompatibilities in
+  # XNNPACK/KleidiAI .S files) and gives full XNNPACK + SME2 acceleration.
   build-windows-arm64:
-    name: Build (windows-latest / ARM64 cross-compile / MSVC)
-    runs-on: windows-latest
+    name: Build (windows-11-arm / ARM64 native / MSVC)
+    runs-on: windows-11-arm
 
     steps:
       - name: Checkout
@@ -171,7 +170,6 @@ jobs:
           cmake -B build-arm64 `
                 -G "Visual Studio 17 2022" `
                 -A ARM64 `
-                -T ClangCL `
                 -DCMAKE_BUILD_TYPE=Release `
                 -DTF_SRC_PATH="${{ github.workspace }}\tf_src"
 

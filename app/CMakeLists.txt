@@ -83,40 +83,14 @@ set(FLATBUFFERS_BIN_DIR ${CMAKE_BINARY_DIR}/flatbuffers-host-bin)
 set(SENTENCEPIECE_SOURCE_DIR ${CMAKE_BINARY_DIR}/sentencepiece)
 
 # Step 1: Build flatc ---
-# flatc is a host tool — it must run on the build machine to generate schema
-# files during the build. When cross-compiling for ARM64 on a Windows x64 host,
-# CMake 3.14+ propagates CMAKE_GENERATOR_PLATFORM (ARM64) to ExternalProjects,
-# which would produce an ARM64 flatc.exe that cannot run on the x64 host
-# (exit code 216 = ERROR_EXE_MACHINE_TYPE_MISMATCH). Force -A x64 to override.
-if(WIN32 AND CMAKE_GENERATOR_PLATFORM STREQUAL "ARM64")
-  # flatc is a host tool — must run on the x64 build machine.
-  # CMake auto-propagates CMAKE_GENERATOR_PLATFORM (ARM64) to ExternalProjects,
-  # producing an ARM64 flatc.exe that cannot run on the x64 host. Override with
-  # x64 + MSVC toolset. CMAKE_GENERATOR must be set explicitly alongside
-  # CMAKE_GENERATOR_PLATFORM (CMake 3.31 requirement).
-  set(_FLATC_GENERATOR         CMAKE_GENERATOR         "${CMAKE_GENERATOR}")
-  set(_FLATC_GENERATOR_PLATFORM CMAKE_GENERATOR_PLATFORM "x64")
-  set(_FLATC_GENERATOR_TOOLSET  CMAKE_GENERATOR_TOOLSET  "v143")
-else()
-  set(_FLATC_GENERATOR          "")
-  set(_FLATC_GENERATOR_PLATFORM "")
-  set(_FLATC_GENERATOR_TOOLSET  "")
-endif()
-
 ExternalProject_Add(
   flatc_build
   PREFIX flatc
   DOWNLOAD_COMMAND ""
   SOURCE_DIR ${FLATBUFFERS_SOURCE_DIR}
   BINARY_DIR ${FLATBUFFERS_BIN_DIR}
-  ${_FLATC_GENERATOR}
-  ${_FLATC_GENERATOR_PLATFORM}
-  ${_FLATC_GENERATOR_TOOLSET}
   INSTALL_COMMAND ""
 )
-unset(_FLATC_GENERATOR)
-unset(_FLATC_GENERATOR_PLATFORM)
-unset(_FLATC_GENERATOR_TOOLSET)
 
 # Step 2: Build SentencePiece ---
 ExternalProject_Add(
