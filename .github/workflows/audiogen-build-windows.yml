@@ -172,7 +172,8 @@ jobs:
                 -G "Visual Studio 17 2022" `
                 -A ARM64 `
                 -DCMAKE_BUILD_TYPE=Release `
-                -DTF_SRC_PATH="${{ github.workspace }}\tf_src"
+                -DTF_SRC_PATH="${{ github.workspace }}\tf_src" `
+                -DXNNPACK_ENABLE_ARM_FP16_VECTOR=OFF
 
       - name: Build
         working-directory: app

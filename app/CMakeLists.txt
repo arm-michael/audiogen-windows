@@ -81,14 +81,27 @@ set(FLATBUFFERS_BIN_DIR ${CMAKE_BINARY_DIR}/flatbuffers-host-bin)
 set(SENTENCEPIECE_SOURCE_DIR ${CMAKE_BINARY_DIR}/sentencepiece)
 
 # Step 1: Build flatc ---
+# flatc is a host tool — it must run on the build machine to generate schema
+# files during the build. When cross-compiling for ARM64 on a Windows x64 host,
+# CMake 3.14+ propagates CMAKE_GENERATOR_PLATFORM (ARM64) to ExternalProjects,
+# which would produce an ARM64 flatc.exe that cannot run on the x64 host
+# (exit code 216 = ERROR_EXE_MACHINE_TYPE_MISMATCH). Force -A x64 to override.
+if(WIN32 AND CMAKE_SYSTEM_PROCESSOR MATCHES "ARM64")
+  set(_FLATC_ARCH_ARG CMAKE_ARGS -A x64)
+else()
+  set(_FLATC_ARCH_ARG "")
+endif()
+
 ExternalProject_Add(
   flatc_build
   PREFIX flatc
   DOWNLOAD_COMMAND ""
   SOURCE_DIR ${FLATBUFFERS_SOURCE_DIR}
   BINARY_DIR ${FLATBUFFERS_BIN_DIR}
+  ${_FLATC_ARCH_ARG}
   INSTALL_COMMAND ""
 )
+unset(_FLATC_ARCH_ARG)
 
 # Step 2: Build SentencePiece ---
 ExternalProject_Add(
