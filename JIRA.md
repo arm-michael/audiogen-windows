@@ -268,7 +268,7 @@ As a developer without a Windows machine, I want a manually-triggered CI job tha
 
 ### WIN-2.1 — ARM64 CI Build + Smoke Test
 
-**Status:** `[~]` In Progress
+**Status:** `[x]` Done — build green, smoke tests passed on windows-11-arm 2026-03-03
 **Priority:** P0
 **Parent:** WIN-2
 **Files:** `.github/workflows/audiogen-build-windows.yml`
@@ -284,8 +284,8 @@ As a developer, I want a CI job that cross-compiles `audiogen.exe` for ARM64 and
 
 **Tasks:**
 - [x] Add `build-windows-arm64` job to `audiogen-build-windows.yml` (`-A ARM64`, `build-arm64` dir, `audiogen-windows-arm64` artifact)
-- [ ] Confirm ARM64 build compiles without XNNPACK SME2 errors
-- [ ] Confirm `smoke-test-windows-arm64` passes on `windows-11-arm`
+- [x] Confirm ARM64 build compiles (XNNPACK disabled via `AUDIOGEN_DISABLE_XNNPACK` for MSVC — see WIN-2.3)
+- [x] Confirm `smoke-test-windows-arm64` passes on `windows-11-arm`
 
 ---
 
@@ -362,6 +362,9 @@ Add `-T ClangCL` to the CMake configure step alongside `-A ARM64`. Remove
 
 | Date | Branch | PR | Stories Updated | Summary |
 |------|--------|----|-----------------|---------|
+| 2026-03-03 | main | — | WIN-2.1 ✅ | ✅ ARM64 BUILD GREEN — smoke tests passed on windows-11-arm (Snapdragon X Elite) |
+| 2026-03-03 | main | — | WIN-2.1 [~] | fix(cmake): use CMAKE_GENERATOR_PLATFORM for ARM64 detection on MSVC |
+| 2026-03-03 | main | — | WIN-2.1 [~] | fix(audiogen): guard XNNPACK delegate behind AUDIOGEN_DISABLE_XNNPACK |
 | 2026-03-03 | main | — | WIN-2.3 📋 | docs(jira): add WIN-2.3 story — XNNPACK ARM64 support via Clang-cl |
 | 2026-03-03 | main | — | WIN-2.1 [~] | fix(ci): disable XNNPACK for ARM64 MSVC — arm_fp16.h + flatc host arch issues |
 | 2026-03-03 | main | — | WIN-2.1 [~] | fix(ci): flatc host arch fix + XNNPACK FP16 vector disable attempt |
