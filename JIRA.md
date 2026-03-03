@@ -260,7 +260,7 @@ As a developer without a Windows machine, I want a manually-triggered CI job tha
 
 ### WIN-2: Port AudioGen to Windows ARM64
 
-**Status:** `[~]` In Progress
+**Status:** `[x]` Done — end-to-end inference confirmed on Snapdragon X Elite 2026-03-03
 **Goal:** Produce a native ARM64 `audiogen.exe` for Snapdragon X Elite / Windows on Arm, built via cross-compilation on `windows-latest` and validated on `windows-11-arm` runners.
 **Approach:** Cross-compile on `windows-latest` using `-A ARM64`; smoke test and inference test on `windows-11-arm` (native hardware).
 
@@ -291,7 +291,7 @@ As a developer, I want a CI job that cross-compiles `audiogen.exe` for ARM64 and
 
 ### WIN-2.2 — ARM64 Inference Test Workflow
 
-**Status:** `[~]` In Progress
+**Status:** `[x]` Done — end-to-end inference confirmed on Snapdragon X Elite 2026-03-03
 **Priority:** P1
 **Parent:** WIN-2
 **Files:** `.github/workflows/audiogen-inference-test-windows-arm64.yml` *(new file)*
@@ -301,15 +301,15 @@ As a developer, I want a CI job that cross-compiles `audiogen.exe` for ARM64 and
 As a developer, I want a manually-triggered CI job that runs real AudioGen inference on native ARM64 hardware and uploads the output WAV, so that I can verify end-to-end generation works on Snapdragon X Elite.
 
 **Acceptance Criteria:**
-- `workflow_dispatch` trigger fires the job on `windows-11-arm`
-- `audiogen.exe` exits 0 on ARM64 hardware
-- `output.wav` is non-zero bytes and downloadable from the `audiogen-output-arm64` artifact
-- x64 inference test workflow is unaffected
+- `workflow_dispatch` trigger fires the job on `windows-11-arm` ✅
+- `audiogen.exe` exits 0 on ARM64 hardware ✅
+- `output.wav` is non-zero bytes and downloadable from the `audiogen-output-arm64` artifact ✅
+- x64 inference test workflow is unaffected ✅
 
 **Tasks:**
 - [x] Create `.github/workflows/audiogen-inference-test-windows-arm64.yml`
-- [ ] Trigger `workflow_dispatch` after WIN-2.1 smoke tests are green
-- [ ] Confirm `audiogen-output-arm64` artifact contains a playable WAV
+- [x] Trigger `workflow_dispatch` after WIN-2.1 smoke tests are green
+- [x] Confirm `audiogen-output-arm64` artifact contains a playable WAV
 
 ---
 
@@ -363,6 +363,7 @@ ON) and SME2 (`XNNPACK_ENABLE_ARM_SME2=ON`) remain enabled for Snapdragon X Elit
 
 | Date | Branch | PR | Stories Updated | Summary |
 |------|--------|----|-----------------|---------|
+| 2026-03-03 | main | — | WIN-2 ✅, WIN-2.2 ✅ | ✅ WIN-2 DONE — end-to-end inference confirmed on Snapdragon X Elite (run 22643841301) |
 | 2026-03-03 | main | — | WIN-2.3 ✅ | ✅ WIN-2.3 DONE — XNNPACK_ENABLE_ARM_FP16_SCALAR=OFF; all 4 jobs green including ARM64 native |
 | 2026-03-03 | main | — | WIN-2.3 [~] | fix(cmake): use CMAKE_C_STANDARD for /std:c11 (VS generator workaround — still failed) |
 | 2026-03-03 | main | — | WIN-2.3 [~] | fix(cmake): add /std:c11 via add_compile_options (VS generator silently ignored it) |
