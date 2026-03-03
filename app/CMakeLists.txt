@@ -128,6 +128,14 @@ if(CMAKE_SYSTEM_PROCESSOR MATCHES "^(aarch64|arm64|ARM64)" OR CMAKE_GENERATOR_PL
     # changes. include_directories(BEFORE) propagates to all add_subdirectory
     # targets including TFLite/XNNPACK via FetchContent_MakeAvailable.
     include_directories(BEFORE "${CMAKE_CURRENT_SOURCE_DIR}/msvc_compat")
+
+    # _Float16 is an ARM64-only type in MSVC and is only recognized as a
+    # type name in C source files when compiled with /std:c11 or higher.
+    # Without this flag, MSVC's default C mode (C89 + extensions) does not
+    # include _Float16 and reports C2061 on the typedef in arm_fp16.h.
+    # The generator expression restricts this flag to C translation units
+    # only (not .cpp files), so TFLite's C++ code is unaffected.
+    add_compile_options($<$<COMPILE_LANGUAGE:C>:/std:c11>)
   endif()
 else()
   set(XNNPACK_ENABLE_ARM_SME2 OFF CACHE BOOL "" FORCE)
