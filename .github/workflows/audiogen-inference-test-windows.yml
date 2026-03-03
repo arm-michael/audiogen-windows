@@ -1,0 +1,164 @@
+#
+# SPDX-FileCopyrightText: Copyright 2025 Arm Limited and/or its affiliates <open-source-office@arm.com>
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+# audiogen-inference-test-windows.yml
+# Manually-triggered end-to-end inference test for audiogen.exe on Windows x64.
+# Downloads audiogen.exe from the latest successful build artifact and
+# model files from a tagged GitHub Release, then runs real inference and
+# uploads the generated WAV as a downloadable artifact.
+#
+# Prerequisites:
+#   1. A successful run of "AudioGen — Build Windows x64" must exist.
+#   2. Model files must be uploaded to a GitHub Release (see WIN-1.9).
+#      Tag:   audiogen-models-v1  (or override via the models_release_tag input)
+#      Files: conditioners_float32.tflite
+#             dit_model.tflite
+#             autoencoder_model.tflite
+#             autoencoder_encoder_model.tflite
+#             spiece.model
+#
+# End-to-end success = this job completes and the audiogen-output artifact
+# contains a non-zero-byte output.wav file.
+
+name: AudioGen — Inference Test Windows x64
+
+on:
+  workflow_dispatch:
+    inputs:
+      models_release_tag:
+        description: 'GitHub Release tag containing model files'
+        required: true
+        default: 'audiogen-models-v1'
+      prompt:
+        description: 'Audio generation prompt'
+        required: true
+        default: 'jazz piano'
+      audio_len:
+        description: 'Audio length in seconds'
+        required: true
+        default: '5'
+      num_steps:
+        description: 'Number of diffusion steps (fewer = faster, lower quality)'
+        required: true
+        default: '4'
+      num_threads:
+        description: 'Number of CPU threads'
+        required: true
+        default: '4'
+
+jobs:
+  # ── End-to-end inference test ───────────────────────────────────────────────
+  inference-test-windows:
+    name: Inference Test (windows-latest / x64)
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Download audiogen.exe from the most recent successful run of the
+      # build workflow. The GH_TOKEN secret is automatically available on
+      # every Actions runner; no additional secrets need to be configured.
+      - name: Download audiogen.exe from latest successful build
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: pwsh
+        run: |
+          $runId = gh run list `
+            --workflow audiogen-build-windows.yml `
+            --status success `
+            --limit 1 `
+            --json databaseId `
+            --jq '.[0].databaseId'
+          if (-not $runId -or $runId -eq 'null') {
+            Write-Error "ERROR: No successful build run found. Trigger 'AudioGen — Build Windows x64' first."
+            exit 1
+          }
+          Write-Host "Downloading artifact from build run $runId"
+          gh run download $runId --name audiogen-windows-x64 --dir dist
+          Write-Host "Binary contents:"
+          Get-ChildItem dist\
+
+      # Download the 5 model files from the GitHub Release created in WIN-1.9.
+      # The release tag is parameterised so the user can rotate model versions
+      # without editing the workflow.
+      - name: Download model files from GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path models | Out-Null
+          $tag = "${{ inputs.models_release_tag }}"
+          Write-Host "Downloading model files from release: $tag"
+          gh release download $tag --pattern "*.tflite" --dir models
+          gh release download $tag --pattern "spiece.model" --dir models
+          Write-Host "Model files:"
+          Get-ChildItem models\
+
+      # Guard: verify all 5 expected files are present before spending 3-8
+      # minutes on inference only to fail at the model-load stage.
+      - name: Verify model files
+        shell: pwsh
+        run: |
+          $expected = @(
+            "conditioners_float32.tflite",
+            "dit_model.tflite",
+            "autoencoder_model.tflite",
+            "autoencoder_encoder_model.tflite",
+            "spiece.model"
+          )
+          $missing = $expected | Where-Object { -not (Test-Path "models\$_") }
+          if ($missing) {
+            Write-Error "ERROR: Missing model files: $($missing -join ', ')"
+            Write-Host "Upload these files to the '${{ inputs.models_release_tag }}' GitHub Release (see WIN-1.9)."
+            exit 1
+          }
+          Write-Host "PASS: all 5 model files present"
+          exit 0
+
+      # Run real inference. audiogen.exe exits 0 on success, non-zero on any
+      # failure. Typical wall-clock time on windows-latest: 3-8 minutes.
+      # Output file is written to output.wav in the runner working directory.
+      - name: Run inference
+        shell: pwsh
+        run: |
+          $prompt   = "${{ inputs.prompt }}"
+          $threads  = ${{ inputs.num_threads }}
+          $steps    = ${{ inputs.num_steps }}
+          $len      = ${{ inputs.audio_len }}
+          Write-Host "Running: audiogen.exe -m models -p '$prompt' -t $threads -n $steps -l $len -o output.wav"
+          & dist\audiogen.exe -m models -p $prompt -t $threads -n $steps -l $len -o output.wav
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "ERROR: audiogen.exe exited with code $LASTEXITCODE"
+            exit 1
+          }
+          Write-Host "PASS: inference completed (exit 0)"
+          exit 0
+
+      # Confirm that a non-empty WAV was produced. A zero-byte file would
+      # indicate a silent write or a bug in the WAV serialisation path.
+      - name: Verify output WAV
+        shell: pwsh
+        run: |
+          if (-not (Test-Path output.wav)) {
+            Write-Error "ERROR: output.wav was not created"
+            exit 1
+          }
+          $size = (Get-Item output.wav).Length
+          if ($size -eq 0) {
+            Write-Error "ERROR: output.wav is zero bytes"
+            exit 1
+          }
+          Write-Host "PASS: output.wav produced ($size bytes)"
+          exit 0
+
+      # Upload the WAV so the user can download and play it from the
+      # Actions run page. This is the primary human-verifiable artefact.
+      - name: Upload output WAV
+        uses: actions/upload-artifact@v4
+        with:
+          name: audiogen-output
+          path: output.wav
+          retention-days: 30

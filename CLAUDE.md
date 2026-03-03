@@ -13,10 +13,10 @@
 PROJECT:  audiogen-windows
 STACK:    C++17 / CMake 3.16+ / TensorFlow Lite / XNNPACK / SentencePiece v0.2.0
 SOURCE:   https://github.com/Arm-Examples/ML-examples/tree/main/kleidiai-examples/audiogen
-REPO:     arm-michael/ML-examples (fork of Arm-Examples/ML-examples)
+REPO:     arm-michael/audiogen-windows
 BRANCH:   main (default), feature branches per story
 BUILD:    cmake -B build -G "Visual Studio 17 2022" -A x64 && cmake --build build --config Release
-CI:       GitHub Actions (.github/workflows/build-windows.yml)
+CI:       GitHub Actions (.github/workflows/audiogen-build-windows.yml)
 ARTIFACTS: audiogen.exe (downloaded from Actions run)
 DEPLOY:   manual distribution (zip + model files)
 PATTERNS: single C++ file app, CMake ExternalProject, no runtime DLL deps (static link)

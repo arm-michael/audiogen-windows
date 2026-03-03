@@ -1,0 +1,137 @@
+#
+# SPDX-FileCopyrightText: Copyright 2025 Arm Limited and/or its affiliates <open-source-office@arm.com>
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+# audiogen-build-windows.yml
+# Builds audiogen.exe for Windows x64 using MSVC on a windows-latest runner.
+# Caches the TensorFlow source clone between runs to avoid repeated 5 GB downloads.
+# Uploads audiogen.exe as a downloadable artifact (30-day retention).
+# Runs smoke tests to verify the binary starts and parses arguments correctly.
+
+name: AudioGen — Build Windows x64
+
+on:
+  push:
+    paths:
+      - 'app/**'
+      - '.github/workflows/audiogen-build-windows.yml'
+  pull_request:
+    paths:
+      - 'app/**'
+      - '.github/workflows/audiogen-build-windows.yml'
+  workflow_dispatch:
+
+jobs:
+  # ── Build ──────────────────────────────────────────────────────────────────
+  build-windows:
+    name: Build (windows-latest / x64 / MSVC)
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # TensorFlow is a ~5 GB git clone. Cache it keyed on the exact commit SHA
+      # pinned in CMakeLists.txt so we only re-clone when the pin changes.
+      - name: Restore TensorFlow source cache
+        id: tf-cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}\tf_src
+          key: tf-src-5baea41aa158ce6c3396726bd84fda5cd81737a0
+          restore-keys: tf-src-
+
+      - name: Clone TensorFlow (cache miss only)
+        if: steps.tf-cache.outputs.cache-hit != 'true'
+        run: |
+          git clone --filter=blob:none --no-checkout https://github.com/tensorflow/tensorflow.git tf_src
+          cd tf_src
+          git checkout 5baea41aa158ce6c3396726bd84fda5cd81737a0
+
+      - name: Configure CMake
+        working-directory: app
+        run: |
+          cmake -B build `
+                -G "Visual Studio 17 2022" `
+                -A x64 `
+                -DCMAKE_BUILD_TYPE=Release `
+                -DTF_SRC_PATH="${{ github.workspace }}\tf_src"
+
+      - name: Build
+        working-directory: app
+        run: cmake --build build --config Release --parallel
+
+      - name: Collect artifact
+        working-directory: app
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path dist | Out-Null
+          Copy-Item build\Release\audiogen.exe dist\
+          # Copy any runtime DLLs that landed next to the exe
+          Get-ChildItem build\Release\*.dll -ErrorAction SilentlyContinue |
+            Copy-Item -Destination dist\ -ErrorAction SilentlyContinue
+          Write-Host "Artifact contents:"
+          Get-ChildItem dist\
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: audiogen-windows-x64
+          path: app/dist/
+          retention-days: 30
+
+  # ── Smoke Tests ────────────────────────────────────────────────────────────
+  smoke-test-windows:
+    name: Smoke Test (windows-latest)
+    runs-on: windows-latest
+    needs: build-windows
+
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: audiogen-windows-x64
+          path: dist
+
+      # audiogen.exe exits 1 by design for -h and all error cases (EXIT_FAILURE).
+      # PowerShell propagates $LASTEXITCODE as the step exit code when the script
+      # ends without an explicit exit — so each step must call exit 0 after its
+      # checks pass. Out-String flattens the mixed stderr ErrorRecord / stdout
+      # string collection so that -match / -notmatch work on a single string.
+
+      - name: Smoke — help flag prints usage
+        shell: pwsh
+        run: |
+          $output = & dist\audiogen.exe -h 2>&1 | Out-String
+          Write-Host $output
+          if ($output -notmatch "Usage") {
+            Write-Error "ERROR: -h flag did not produce usage text"
+            exit 1
+          }
+          Write-Host "PASS: usage text present"
+          exit 0
+
+      - name: Smoke — no args prints error cleanly
+        shell: pwsh
+        run: |
+          $output = & dist\audiogen.exe 2>&1 | Out-String
+          Write-Host $output
+          if ($output -match "access violation|segfault|unhandled exception") {
+            Write-Error "ERROR: process crashed"
+            exit 1
+          }
+          Write-Host "PASS: clean error output, no crash"
+          exit 0
+
+      - name: Smoke — required flags accepted, reaches model-load stage
+        shell: pwsh
+        run: |
+          $output = & dist\audiogen.exe -m nonexistent_path -p "test prompt" -t 2 2>&1 | Out-String
+          Write-Host $output
+          if ($output -match "Missing required arguments") {
+            Write-Error "ERROR: flags were not parsed correctly"
+            exit 1
+          }
+          Write-Host "PASS: flags parsed, reached model-load stage"
+          exit 0
