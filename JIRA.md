@@ -256,14 +256,70 @@ As a developer without a Windows machine, I want a manually-triggered CI job tha
 
 ---
 
+## Epics (continued)
+
+### WIN-2: Port AudioGen to Windows ARM64
+
+**Status:** `[~]` In Progress
+**Goal:** Produce a native ARM64 `audiogen.exe` for Snapdragon X Elite / Windows on Arm, built via cross-compilation on `windows-latest` and validated on `windows-11-arm` runners.
+**Approach:** Cross-compile on `windows-latest` using `-A ARM64`; smoke test and inference test on `windows-11-arm` (native hardware).
+
+---
+
+### WIN-2.1 — ARM64 CI Build + Smoke Test
+
+**Status:** `[~]` In Progress
+**Priority:** P0
+**Parent:** WIN-2
+**Files:** `.github/workflows/audiogen-build-windows.yml`
+
+**User Story:**
+As a developer, I want a CI job that cross-compiles `audiogen.exe` for ARM64 and runs smoke tests on native `windows-11-arm` hardware, so that I can distribute a native Snapdragon X Elite binary without a local ARM64 Windows machine.
+
+**Acceptance Criteria:**
+- `build-windows-arm64` job exits 0; `audiogen.exe` is in the `audiogen-windows-arm64` artifact
+- `smoke-test-windows-arm64` job exits 0; `audiogen.exe -h` prints usage on ARM64 hardware
+- `audiogen.exe -m nonexistent -p "test" -t 2` reaches model-load error (not arg-parse error)
+- Existing `build-windows` and `smoke-test-windows` (x64) jobs still pass — no regression
+
+**Tasks:**
+- [x] Add `build-windows-arm64` job to `audiogen-build-windows.yml` (`-A ARM64`, `build-arm64` dir, `audiogen-windows-arm64` artifact)
+- [ ] Confirm ARM64 build compiles without XNNPACK SME2 errors
+- [ ] Confirm `smoke-test-windows-arm64` passes on `windows-11-arm`
+
+---
+
+### WIN-2.2 — ARM64 Inference Test Workflow
+
+**Status:** `[~]` In Progress
+**Priority:** P1
+**Parent:** WIN-2
+**Files:** `.github/workflows/audiogen-inference-test-windows-arm64.yml` *(new file)*
+**Depends on:** WIN-2.1
+
+**User Story:**
+As a developer, I want a manually-triggered CI job that runs real AudioGen inference on native ARM64 hardware and uploads the output WAV, so that I can verify end-to-end generation works on Snapdragon X Elite.
+
+**Acceptance Criteria:**
+- `workflow_dispatch` trigger fires the job on `windows-11-arm`
+- `audiogen.exe` exits 0 on ARM64 hardware
+- `output.wav` is non-zero bytes and downloadable from the `audiogen-output-arm64` artifact
+- x64 inference test workflow is unaffected
+
+**Tasks:**
+- [x] Create `.github/workflows/audiogen-inference-test-windows-arm64.yml`
+- [ ] Trigger `workflow_dispatch` after WIN-2.1 smoke tests are green
+- [ ] Confirm `audiogen-output-arm64` artifact contains a playable WAV
+
+---
+
 ## Backlog
 
 | ID | Title | Priority | Notes |
 |----|-------|----------|-------|
-| WIN-2.1 | Windows ARM64 build variant | P2 | Add second Actions job with `-A ARM64`; re-enables SME2 path for Snapdragon X Elite |
-| WIN-2.2 | macOS build in CI | P2 | Add macOS Actions job to catch regressions automatically |
-| WIN-2.3 | Codesign the exe | P3 | Needed for Windows Defender not to flag unsigned binary |
-| WIN-2.4 | GitHub Release automation | P2 | Publish tagged release with artifacts on `v*` tags |
+| WIN-2.3 | macOS build in CI | P2 | Add macOS Actions job to catch regressions automatically |
+| WIN-2.4 | Codesign the exe | P3 | Needed for Windows Defender not to flag unsigned binary |
+| WIN-2.5 | GitHub Release automation | P2 | Publish tagged release with artifacts on `v*` tags |
 
 ---
 
@@ -273,6 +329,8 @@ As a developer without a Windows machine, I want a manually-triggered CI job tha
 
 | Date | Branch | PR | Stories Updated | Summary |
 |------|--------|----|-----------------|---------|
+| 2026-03-02 | main | — | WIN-2.1 [~], WIN-2.2 [~] | build(ci): ARM64 cross-compile build + smoke test jobs + inference test workflow |
+| 2026-03-02 | main | — | — | chore(repo): migrate to arm-michael/audiogen-windows — subtree extract, path updates |
 | 2026-03-02 | main | — | WIN-1 ✅, WIN-1.9 ✅, WIN-1.10 ✅ | ✅ END-TO-END INFERENCE CONFIRMED — output.wav plays correctly on Windows x64 |
 | 2026-02-27 | feat/WIN-1.10-inference-test-ci | — | WIN-1.9 📋, WIN-1.10 [~] | build(ci): end-to-end inference test workflow + JIRA stories WIN-1.9/1.10 |
 | 2026-02-27 | main | — | — | chore: scaffold — planning docs, extended .gitignore |

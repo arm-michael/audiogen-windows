@@ -4,12 +4,13 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 # audiogen-build-windows.yml
-# Builds audiogen.exe for Windows x64 using MSVC on a windows-latest runner.
+# Builds audiogen.exe for Windows x64 and ARM64 using MSVC on a windows-latest runner.
 # Caches the TensorFlow source clone between runs to avoid repeated 5 GB downloads.
 # Uploads audiogen.exe as a downloadable artifact (30-day retention).
 # Runs smoke tests to verify the binary starts and parses arguments correctly.
+# ARM64 smoke tests run on windows-11-arm (native Snapdragon X Elite hardware).
 
-name: AudioGen — Build Windows x64
+name: AudioGen — Build Windows
 
 on:
   push:
@@ -99,6 +100,116 @@ jobs:
       # ends without an explicit exit — so each step must call exit 0 after its
       # checks pass. Out-String flattens the mixed stderr ErrorRecord / stdout
       # string collection so that -match / -notmatch work on a single string.
+
+      - name: Smoke — help flag prints usage
+        shell: pwsh
+        run: |
+          $output = & dist\audiogen.exe -h 2>&1 | Out-String
+          Write-Host $output
+          if ($output -notmatch "Usage") {
+            Write-Error "ERROR: -h flag did not produce usage text"
+            exit 1
+          }
+          Write-Host "PASS: usage text present"
+          exit 0
+
+      - name: Smoke — no args prints error cleanly
+        shell: pwsh
+        run: |
+          $output = & dist\audiogen.exe 2>&1 | Out-String
+          Write-Host $output
+          if ($output -match "access violation|segfault|unhandled exception") {
+            Write-Error "ERROR: process crashed"
+            exit 1
+          }
+          Write-Host "PASS: clean error output, no crash"
+          exit 0
+
+      - name: Smoke — required flags accepted, reaches model-load stage
+        shell: pwsh
+        run: |
+          $output = & dist\audiogen.exe -m nonexistent_path -p "test prompt" -t 2 2>&1 | Out-String
+          Write-Host $output
+          if ($output -match "Missing required arguments") {
+            Write-Error "ERROR: flags were not parsed correctly"
+            exit 1
+          }
+          Write-Host "PASS: flags parsed, reached model-load stage"
+          exit 0
+
+  # ── ARM64 Build ────────────────────────────────────────────────────────────
+  # Cross-compiles on windows-latest (x64 host) targeting ARM64 using the
+  # Visual Studio 17 2022 ARM64 cross-compilation toolchain (-A ARM64).
+  # CMAKE_SYSTEM_PROCESSOR=ARM64 is set automatically by the VS generator,
+  # which enables the XNNPACK SME2 path in CMakeLists.txt for Snapdragon X Elite.
+  build-windows-arm64:
+    name: Build (windows-latest / ARM64 cross-compile / MSVC)
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Restore TensorFlow source cache
+        id: tf-cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}\tf_src
+          key: tf-src-5baea41aa158ce6c3396726bd84fda5cd81737a0
+          restore-keys: tf-src-
+
+      - name: Clone TensorFlow (cache miss only)
+        if: steps.tf-cache.outputs.cache-hit != 'true'
+        run: |
+          git clone --filter=blob:none --no-checkout https://github.com/tensorflow/tensorflow.git tf_src
+          cd tf_src
+          git checkout 5baea41aa158ce6c3396726bd84fda5cd81737a0
+
+      - name: Configure CMake
+        working-directory: app
+        run: |
+          cmake -B build-arm64 `
+                -G "Visual Studio 17 2022" `
+                -A ARM64 `
+                -DCMAKE_BUILD_TYPE=Release `
+                -DTF_SRC_PATH="${{ github.workspace }}\tf_src"
+
+      - name: Build
+        working-directory: app
+        run: cmake --build build-arm64 --config Release --parallel
+
+      - name: Collect artifact
+        working-directory: app
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path dist-arm64 | Out-Null
+          Copy-Item build-arm64\Release\audiogen.exe dist-arm64\
+          Get-ChildItem build-arm64\Release\*.dll -ErrorAction SilentlyContinue |
+            Copy-Item -Destination dist-arm64\ -ErrorAction SilentlyContinue
+          Write-Host "Artifact contents:"
+          Get-ChildItem dist-arm64\
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: audiogen-windows-arm64
+          path: app/dist-arm64/
+          retention-days: 30
+
+  # ── ARM64 Smoke Tests ──────────────────────────────────────────────────────
+  # Runs on native windows-11-arm hardware (Snapdragon X Elite) to verify
+  # the cross-compiled ARM64 binary actually executes on ARM64 Windows.
+  smoke-test-windows-arm64:
+    name: Smoke Test (windows-11-arm)
+    runs-on: windows-11-arm
+    needs: build-windows-arm64
+
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: audiogen-windows-arm64
+          path: dist
 
       - name: Smoke — help flag prints usage
         shell: pwsh

@@ -1,0 +1,153 @@
+#
+# SPDX-FileCopyrightText: Copyright 2025 Arm Limited and/or its affiliates <open-source-office@arm.com>
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+# audiogen-inference-test-windows-arm64.yml
+# Manually-triggered end-to-end inference test for audiogen.exe on Windows ARM64.
+# Downloads the ARM64 audiogen.exe from the latest successful build artifact and
+# model files from a tagged GitHub Release, then runs real inference on native
+# ARM64 hardware (Snapdragon X Elite) and uploads the generated WAV as an artifact.
+#
+# Prerequisites:
+#   1. A successful run of "AudioGen — Build Windows" (build-windows-arm64 job) must exist.
+#   2. Model files must be uploaded to a GitHub Release.
+#      Tag:   audiogen-models-v1  (or override via the models_release_tag input)
+#      Files: conditioners_float32.tflite
+#             dit_model.tflite
+#             autoencoder_model.tflite
+#             autoencoder_encoder_model.tflite
+#             spiece.model
+#
+# End-to-end success = this job completes and the audiogen-output-arm64 artifact
+# contains a non-zero-byte output.wav file.
+
+name: AudioGen — Inference Test Windows ARM64
+
+on:
+  workflow_dispatch:
+    inputs:
+      models_release_tag:
+        description: 'GitHub Release tag containing model files'
+        required: true
+        default: 'audiogen-models-v1'
+      prompt:
+        description: 'Audio generation prompt'
+        required: true
+        default: 'jazz piano'
+      audio_len:
+        description: 'Audio length in seconds'
+        required: true
+        default: '5'
+      num_steps:
+        description: 'Number of diffusion steps (fewer = faster, lower quality)'
+        required: true
+        default: '4'
+      num_threads:
+        description: 'Number of CPU threads'
+        required: true
+        default: '4'
+
+jobs:
+  # ── End-to-end inference test on native ARM64 hardware ─────────────────────
+  inference-test-windows-arm64:
+    name: Inference Test (windows-11-arm / ARM64)
+    runs-on: windows-11-arm
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Download the ARM64 audiogen.exe from the most recent successful run of
+      # the build workflow (build-windows-arm64 job).
+      - name: Download audiogen.exe from latest successful build
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: pwsh
+        run: |
+          $runId = gh run list `
+            --workflow audiogen-build-windows.yml `
+            --status success `
+            --limit 1 `
+            --json databaseId `
+            --jq '.[0].databaseId'
+          if (-not $runId -or $runId -eq 'null') {
+            Write-Error "ERROR: No successful build run found. Trigger 'AudioGen — Build Windows' first."
+            exit 1
+          }
+          Write-Host "Downloading artifact from build run $runId"
+          gh run download $runId --name audiogen-windows-arm64 --dir dist
+          Write-Host "Binary contents:"
+          Get-ChildItem dist\
+
+      # Download the 5 model files from the GitHub Release.
+      # TFLite format is architecture-independent — same files as x64.
+      - name: Download model files from GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path models | Out-Null
+          $tag = "${{ inputs.models_release_tag }}"
+          Write-Host "Downloading model files from release: $tag"
+          gh release download $tag --pattern "*.tflite" --dir models
+          gh release download $tag --pattern "spiece.model" --dir models
+          Write-Host "Model files:"
+          Get-ChildItem models\
+
+      - name: Verify model files
+        shell: pwsh
+        run: |
+          $expected = @(
+            "conditioners_float32.tflite",
+            "dit_model.tflite",
+            "autoencoder_model.tflite",
+            "autoencoder_encoder_model.tflite",
+            "spiece.model"
+          )
+          $missing = $expected | Where-Object { -not (Test-Path "models\$_") }
+          if ($missing) {
+            Write-Error "ERROR: Missing model files: $($missing -join ', ')"
+            Write-Host "Upload these files to the '${{ inputs.models_release_tag }}' GitHub Release."
+            exit 1
+          }
+          Write-Host "PASS: all 5 model files present"
+          exit 0
+
+      - name: Run inference
+        shell: pwsh
+        run: |
+          $prompt   = "${{ inputs.prompt }}"
+          $threads  = ${{ inputs.num_threads }}
+          $steps    = ${{ inputs.num_steps }}
+          $len      = ${{ inputs.audio_len }}
+          Write-Host "Running: audiogen.exe -m models -p '$prompt' -t $threads -n $steps -l $len -o output.wav"
+          & dist\audiogen.exe -m models -p $prompt -t $threads -n $steps -l $len -o output.wav
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "ERROR: audiogen.exe exited with code $LASTEXITCODE"
+            exit 1
+          }
+          Write-Host "PASS: inference completed (exit 0)"
+          exit 0
+
+      - name: Verify output WAV
+        shell: pwsh
+        run: |
+          if (-not (Test-Path output.wav)) {
+            Write-Error "ERROR: output.wav was not created"
+            exit 1
+          }
+          $size = (Get-Item output.wav).Length
+          if ($size -eq 0) {
+            Write-Error "ERROR: output.wav is zero bytes"
+            exit 1
+          }
+          Write-Host "PASS: output.wav produced ($size bytes)"
+          exit 0
+
+      - name: Upload output WAV
+        uses: actions/upload-artifact@v4
+        with:
+          name: audiogen-output-arm64
+          path: output.wav
+          retention-days: 30
