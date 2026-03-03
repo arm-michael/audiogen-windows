@@ -90,12 +90,16 @@ set(SENTENCEPIECE_SOURCE_DIR ${CMAKE_BINARY_DIR}/sentencepiece)
 # (exit code 216 = ERROR_EXE_MACHINE_TYPE_MISMATCH). Force -A x64 to override.
 if(WIN32 AND CMAKE_GENERATOR_PLATFORM STREQUAL "ARM64")
   # flatc is a host tool — must run on the x64 build machine.
-  # Force x64 architecture and the MSVC toolset (v143) regardless of the
-  # parent project's toolset (e.g. ClangCL), since flatbuffers builds
-  # reliably with MSVC and ClangCL may not support all flatbuffers CMake paths.
-  set(_FLATC_ARCH_ARG CMAKE_ARGS -A x64 -T v143)
+  # CMake automatically propagates CMAKE_GENERATOR_PLATFORM (ARM64) to
+  # ExternalProjects, which would produce an ARM64 flatc.exe that cannot run
+  # on the x64 host. Override via the ExternalProject CMAKE_GENERATOR_PLATFORM
+  # and CMAKE_GENERATOR_TOOLSET keywords (not CMAKE_ARGS -A/-T, which would
+  # produce "Multiple -A options not allowed" since the parent already set one).
+  set(_FLATC_PLATFORM "x64")
+  set(_FLATC_TOOLSET  "v143")
 else()
-  set(_FLATC_ARCH_ARG "")
+  set(_FLATC_PLATFORM "")
+  set(_FLATC_TOOLSET  "")
 endif()
 
 ExternalProject_Add(
@@ -104,10 +108,12 @@ ExternalProject_Add(
   DOWNLOAD_COMMAND ""
   SOURCE_DIR ${FLATBUFFERS_SOURCE_DIR}
   BINARY_DIR ${FLATBUFFERS_BIN_DIR}
-  ${_FLATC_ARCH_ARG}
+  CMAKE_GENERATOR_PLATFORM ${_FLATC_PLATFORM}
+  CMAKE_GENERATOR_TOOLSET  ${_FLATC_TOOLSET}
   INSTALL_COMMAND ""
 )
-unset(_FLATC_ARCH_ARG)
+unset(_FLATC_PLATFORM)
+unset(_FLATC_TOOLSET)
 
 # Step 2: Build SentencePiece ---
 ExternalProject_Add(
