@@ -120,6 +120,15 @@ add_executable(audiogen ${SRCS})
 
 if(CMAKE_SYSTEM_PROCESSOR MATCHES "^(aarch64|arm64|ARM64)" OR CMAKE_GENERATOR_PLATFORM STREQUAL "ARM64")
   set(XNNPACK_ENABLE_ARM_SME2 ON CACHE BOOL "" FORCE)
+
+  if(MSVC)
+    # MSVC ARM64 does not ship arm_fp16.h (ARM ACLE header). XNNPACK's
+    # fp16arith scalar kernels include it for the float16_t typedef. Inject
+    # our stub before system headers so XNNPACK finds it without any source
+    # changes. include_directories(BEFORE) propagates to all add_subdirectory
+    # targets including TFLite/XNNPACK via FetchContent_MakeAvailable.
+    include_directories(BEFORE "${CMAKE_CURRENT_SOURCE_DIR}/msvc_compat")
+  endif()
 else()
   set(XNNPACK_ENABLE_ARM_SME2 OFF CACHE BOOL "" FORCE)
 endif()
