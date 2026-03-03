@@ -89,7 +89,11 @@ set(SENTENCEPIECE_SOURCE_DIR ${CMAKE_BINARY_DIR}/sentencepiece)
 # which would produce an ARM64 flatc.exe that cannot run on the x64 host
 # (exit code 216 = ERROR_EXE_MACHINE_TYPE_MISMATCH). Force -A x64 to override.
 if(WIN32 AND CMAKE_GENERATOR_PLATFORM STREQUAL "ARM64")
-  set(_FLATC_ARCH_ARG CMAKE_ARGS -A x64)
+  # flatc is a host tool — must run on the x64 build machine.
+  # Force x64 architecture and the MSVC toolset (v143) regardless of the
+  # parent project's toolset (e.g. ClangCL), since flatbuffers builds
+  # reliably with MSVC and ClangCL may not support all flatbuffers CMake paths.
+  set(_FLATC_ARCH_ARG CMAKE_ARGS -A x64 -T v143)
 else()
   set(_FLATC_ARCH_ARG "")
 endif()
