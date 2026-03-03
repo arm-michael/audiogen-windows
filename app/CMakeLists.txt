@@ -12,6 +12,8 @@ include(ExternalProject)
 
 message(STATUS "CMAKE_SYSTEM_NAME: ${CMAKE_SYSTEM_NAME}")
 message(STATUS "CMAKE_HOST_SYSTEM_NAME: ${CMAKE_HOST_SYSTEM_NAME}")
+message(STATUS "CMAKE_SYSTEM_PROCESSOR: ${CMAKE_SYSTEM_PROCESSOR}")
+message(STATUS "CMAKE_GENERATOR_PLATFORM: ${CMAKE_GENERATOR_PLATFORM}")
 
 set(CMAKE_CXX_STANDARD 17)
 
@@ -129,7 +131,7 @@ set(SRCS audiogen.cpp)
 
 add_executable(audiogen ${SRCS})
 
-if(CMAKE_SYSTEM_PROCESSOR MATCHES "^(aarch64|arm64|ARM64)")
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "^(aarch64|arm64|ARM64)" OR CMAKE_GENERATOR_PLATFORM STREQUAL "ARM64")
   set(XNNPACK_ENABLE_ARM_SME2 ON CACHE BOOL "" FORCE)
 else()
   set(XNNPACK_ENABLE_ARM_SME2 OFF CACHE BOOL "" FORCE)
@@ -179,7 +181,7 @@ add_dependencies(audiogen flatc_build sentencepiece_src)
 # mismatch). Disable XNNPACK at the source level so audiogen.cpp skips the
 # delegate setup and uses TFLite reference kernels instead.
 # Full XNNPACK support on ARM64 Windows requires Clang-cl (see WIN-2.3).
-if(WIN32 AND CMAKE_SYSTEM_PROCESSOR MATCHES "ARM64")
+if(WIN32 AND CMAKE_GENERATOR_PLATFORM STREQUAL "ARM64")
   target_compile_definitions(audiogen PRIVATE AUDIOGEN_DISABLE_XNNPACK)
 endif()
 
