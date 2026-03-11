@@ -54,17 +54,17 @@ The instructions to convert the three submodules of the Stable Audio Open Small 
 ## Part 2 - Build instructions
 The instructions to build the audio generation application to run on Android™ are detailed in the [README.md](./app/README.md) file in the `app/` folder. Instructions are valid for both Linux® and macOS® systems.
 
-## Part 3 - Windows x64
+## Part 3 - Windows (x64 and ARM64)
 
-`audiogen.exe` is supported on Windows 10/11 x64. No Windows machine or local build environment is required — the binary is built and tested entirely via GitHub Actions.
+`audiogen.exe` is supported on Windows 10/11 x64 and ARM64 (Windows on Arm). No Windows machine or local build environment is required — binaries for both targets are built and tested entirely via GitHub Actions.
 
 ### Getting the binary
 
 Download `audiogen.exe` from the latest GitHub Actions run:
 
-1. Go to **Actions → AudioGen — Build Windows x64**
+1. Go to **Actions → AudioGen — Build Windows**
 2. Open the most recent successful run
-3. Download the **`audiogen-windows-x64`** artifact
+3. Download **`audiogen-windows-x64`** (Intel/AMD) or **`audiogen-windows-arm64`** (ARM64 / Windows on Arm)
 
 ### Running inference on Windows
 
@@ -80,9 +80,15 @@ See [app/README-windows.md](./app/README-windows.md) for full setup instructions
 
 To run end-to-end inference on a Windows GitHub Actions runner without a local Windows machine:
 
+**x64:**
 1. Go to **Actions → AudioGen — Inference Test Windows x64**
 2. Click **Run workflow**
 3. Download the **`audiogen-output`** artifact and play `output.wav`
+
+**ARM64 (Windows on Arm):**
+1. Go to **Actions → AudioGen — Inference Test Windows ARM64**
+2. Click **Run workflow**
+3. Download the **`audiogen-output-arm64`** artifact and play `output.wav`
 
 ## Trademarks
 

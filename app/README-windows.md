@@ -3,7 +3,7 @@ SPDX-FileCopyrightText: Copyright 2025 Arm Limited and/or its affiliates <open-s
 SPDX-License-Identifier: Apache-2.0
 -->
 
-# AudioGen — Windows x64 CLI
+# AudioGen — Windows CLI
 
 Generate audio from text prompts on Windows using the Stable Audio Open Small model.
 
@@ -13,7 +13,7 @@ Generate audio from text prompts on Windows using the Stable Audio Open Small mo
 
 | Requirement | Notes |
 |---|---|
-| Windows 10 or 11 (x64) | ARM64 Windows is not yet supported |
+| Windows 10 or 11 | x64 and ARM64 (Windows on Arm) are both supported |
 | 8 GB RAM minimum | The DiT model is memory-intensive |
 | ~3 GB free disk space | For model files |
 
@@ -23,11 +23,13 @@ No compiler, Visual Studio, or Python installation is required to run the binary
 
 ## Getting the Binary
 
-1. Go to the [Actions tab](https://github.com/arm-michael/ML-examples/actions/workflows/audiogen-build-windows.yml)
+Both x64 and ARM64 binaries are produced by the same CI workflow.
+
+1. Go to the [Actions tab](https://github.com/arm-michael/audiogen-windows/actions/workflows/audiogen-build-windows.yml)
 2. Click the most recent successful run
-3. Scroll to **Artifacts** at the bottom of the run page
-4. Download **`audiogen-windows-x64.zip`**
-5. Extract it — you will find `audiogen.exe` inside
+3. Scroll to **Artifacts** at the bottom
+4. Download **`audiogen-windows-x64`** (x64) or **`audiogen-windows-arm64`** (ARM64 / Windows on Arm)
+5. Extract the zip — you will find `audiogen.exe` inside
 
 ---
 
@@ -156,7 +158,7 @@ audiogen.exe -m models -p "jazz piano late night" -t 4 -i input_converted.wav -x
 |---|---|
 | Thread count | Start with 4. Increase to the number of physical cores for best throughput. Hyperthreaded cores add little benefit for inference. |
 | Generation time | A 10-second clip at 8 steps takes roughly 3–8 minutes on a modern x64 laptop. |
-| Arm SME2 | This build is x64 and does not use Arm KleidiAI optimisations. It is ~2–3× slower than the native Arm build. |
+| Arm hardware | The ARM64 build uses XNNPACK NEON and SME2 (if available) acceleration via Arm KleidiAI. The x64 build does not use Arm-specific optimisations. |
 | Memory | Keep other applications closed. The three models together require ~3–4 GB of RAM at peak. |
 
 ---
