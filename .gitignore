@@ -49,3 +49,9 @@ dist/
 
 # ide
 .idea/
+
+# internal agent files
+CLAUDE.md
+CLAUDE-SWE.md
+JIRA.md
+spec.md
