@@ -30,9 +30,16 @@ spiece.model
 # python venvs
 .venv/
 
+# tensorflow source clone (pre-cloned to avoid repeated 5 GB download)
+tf_src/
+
+# model conversion tooling (one-time use, not needed by end users)
+tools/
+
 # windows build artifacts
 *.exe
 *.lib
+*.obj
 *.pdb
 *.ilk
 *.exp
@@ -55,3 +62,7 @@ CLAUDE.md
 CLAUDE-SWE.md
 JIRA.md
 spec.md
+
+# blog drafts
+blog-post.md
+blogAbstract.md
