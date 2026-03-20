@@ -178,6 +178,13 @@ target_link_libraries(audiogen
   ${SENTENCEPIECE_LIB}
 )
 
+# Statically link the MSVC runtime so the binary has no VC++ redistributable
+# dependency (eliminates VCRUNTIME140_THREADS.dll not found on end-user machines).
+if(MSVC)
+  set_property(TARGET audiogen PROPERTY
+    MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+endif()
+
 # Ensure dependency build order
 add_dependencies(audiogen flatc_build sentencepiece_src)
 
