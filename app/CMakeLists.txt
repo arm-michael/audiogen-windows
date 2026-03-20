@@ -17,6 +17,16 @@ message(STATUS "CMAKE_GENERATOR_PLATFORM: ${CMAKE_GENERATOR_PLATFORM}")
 
 set(CMAKE_CXX_STANDARD 17)
 
+if(MSVC)
+  # Statically link the MSVC runtime across all targets so the binary
+  # has no VC++ redistributable dependency (no VCRUNTIME140_THREADS.dll).
+  # Must be set globally before any add_subdirectory/FetchContent calls
+  # so tensorflow-lite and XNNPACK inherit it. Also appended to
+  # TOOLCHAIN_CMAKE_ARGS so ExternalProject sub-builds (sentencepiece) match.
+  set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>" CACHE STRING "" FORCE)
+  list(APPEND TOOLCHAIN_CMAKE_ARGS -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded)
+endif()
+
 if(CMAKE_TOOLCHAIN_FILE)
   list(APPEND TOOLCHAIN_CMAKE_ARGS -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE})
 endif()
@@ -177,13 +187,6 @@ target_link_libraries(audiogen
   tensorflow-lite
   ${SENTENCEPIECE_LIB}
 )
-
-# Statically link the MSVC runtime so the binary has no VC++ redistributable
-# dependency (eliminates VCRUNTIME140_THREADS.dll not found on end-user machines).
-if(MSVC)
-  set_property(TARGET audiogen PROPERTY
-    MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
-endif()
 
 # Ensure dependency build order
 add_dependencies(audiogen flatc_build sentencepiece_src)
