@@ -18,24 +18,22 @@ message(STATUS "CMAKE_GENERATOR_PLATFORM: ${CMAKE_GENERATOR_PLATFORM}")
 set(CMAKE_CXX_STANDARD 17)
 
 if(MSVC)
-  # Statically link the MSVC runtime across all targets so the binary
-  # has no VC++ redistributable dependency (no VCRUNTIME140_THREADS.dll).
-  # Two-pronged approach for reliability:
-  # 1. CMAKE_MSVC_RUNTIME_LIBRARY — CMake 3.15+ mechanism, covers most targets.
-  # 2. /MD -> /MT flag replacement — covers deep sub-projects (e.g. abseil via
-  #    TFLite) that may not honour CMAKE_MSVC_RUNTIME_LIBRARY due to their own
-  #    project() calls or older CMake policies.
+  # Statically link the MSVC runtime so the binary requires no VC++ redistributable.
+  # Three-pronged approach — each layer covers a different sub-project scenario:
+  #
+  # 1. CMAKE_MSVC_RUNTIME_LIBRARY (CACHE FORCE) — CMake 3.15+ / CMP0091=NEW targets.
+  # 2. TOOLCHAIN_CMAKE_ARGS — passed to ExternalProject sub-builds (sentencepiece).
+  # 3. add_compile_options(/MT) — covers add_subdirectory sub-projects with CMP0091=OLD
+  #    (e.g. abseil via TFLite) where CMAKE_MSVC_RUNTIME_LIBRARY is ignored.
+  #    add_compile_options propagates into all sub-scopes and appends after
+  #    CMAKE_CXX_FLAGS_* in the compile command, so /MT wins over any /MD already
+  #    present (MSVC uses the last runtime flag; D9025 warning is expected and harmless).
   set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>" CACHE STRING "" FORCE)
   list(APPEND TOOLCHAIN_CMAKE_ARGS -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded)
-  foreach(_flag_var
-      CMAKE_CXX_FLAGS CMAKE_CXX_FLAGS_DEBUG CMAKE_CXX_FLAGS_RELEASE
-      CMAKE_CXX_FLAGS_MINSIZEREL CMAKE_CXX_FLAGS_RELWITHDEBINFO
-      CMAKE_C_FLAGS CMAKE_C_FLAGS_DEBUG CMAKE_C_FLAGS_RELEASE
-      CMAKE_C_FLAGS_MINSIZEREL CMAKE_C_FLAGS_RELWITHDEBINFO)
-    if(${_flag_var} MATCHES "/MD")
-      string(REGEX REPLACE "/MD" "/MT" ${_flag_var} "${${_flag_var}}")
-    endif()
-  endforeach()
+  add_compile_options(
+    $<$<CONFIG:Debug>:/MTd>
+    $<$<NOT:$<CONFIG:Debug>>:/MT>
+  )
 endif()
 
 if(CMAKE_TOOLCHAIN_FILE)
