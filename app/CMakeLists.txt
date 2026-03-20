@@ -20,11 +20,22 @@ set(CMAKE_CXX_STANDARD 17)
 if(MSVC)
   # Statically link the MSVC runtime across all targets so the binary
   # has no VC++ redistributable dependency (no VCRUNTIME140_THREADS.dll).
-  # Must be set globally before any add_subdirectory/FetchContent calls
-  # so tensorflow-lite and XNNPACK inherit it. Also appended to
-  # TOOLCHAIN_CMAKE_ARGS so ExternalProject sub-builds (sentencepiece) match.
+  # Two-pronged approach for reliability:
+  # 1. CMAKE_MSVC_RUNTIME_LIBRARY — CMake 3.15+ mechanism, covers most targets.
+  # 2. /MD -> /MT flag replacement — covers deep sub-projects (e.g. abseil via
+  #    TFLite) that may not honour CMAKE_MSVC_RUNTIME_LIBRARY due to their own
+  #    project() calls or older CMake policies.
   set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>" CACHE STRING "" FORCE)
   list(APPEND TOOLCHAIN_CMAKE_ARGS -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded)
+  foreach(_flag_var
+      CMAKE_CXX_FLAGS CMAKE_CXX_FLAGS_DEBUG CMAKE_CXX_FLAGS_RELEASE
+      CMAKE_CXX_FLAGS_MINSIZEREL CMAKE_CXX_FLAGS_RELWITHDEBINFO
+      CMAKE_C_FLAGS CMAKE_C_FLAGS_DEBUG CMAKE_C_FLAGS_RELEASE
+      CMAKE_C_FLAGS_MINSIZEREL CMAKE_C_FLAGS_RELWITHDEBINFO)
+    if(${_flag_var} MATCHES "/MD")
+      string(REGEX REPLACE "/MD" "/MT" ${_flag_var} "${${_flag_var}}")
+    endif()
+  endforeach()
 endif()
 
 if(CMAKE_TOOLCHAIN_FILE)
