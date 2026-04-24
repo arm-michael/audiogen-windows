@@ -295,7 +295,6 @@ static void encode_audio(const std::string& audio_input_path, const std::string&
     xnnpack_options.flags |= TFLITE_XNNPACK_DELEGATE_FLAG_QS8;
     xnnpack_options.flags |= TFLITE_XNNPACK_DELEGATE_FLAG_QU8;
     xnnpack_options.flags |= TFLITE_XNNPACK_DELEGATE_FLAG_DYNAMIC_FULLY_CONNECTED;
-    xnnpack_options.flags |= TFLITE_XNNPACK_DELEGATE_FLAG_ENABLE_SUBGRAPH_RESHAPING;
     xnnpack_options.flags |= TFLITE_XNNPACK_DELEGATE_FLAG_ENABLE_LATEST_OPERATORS;
     xnnpack_options.flags |= TFLITE_XNNPACK_DELEGATE_FLAG_VARIABLE_OPERATORS;
     xnnpack_options.flags |= TFLITE_XNNPACK_DELEGATE_FLAG_FORCE_FP16;
@@ -547,7 +546,6 @@ int main(int32_t argc, char** argv) {
     xnnpack_options.flags |= TFLITE_XNNPACK_DELEGATE_FLAG_QS8;
     xnnpack_options.flags |= TFLITE_XNNPACK_DELEGATE_FLAG_QU8;
     xnnpack_options.flags |= TFLITE_XNNPACK_DELEGATE_FLAG_DYNAMIC_FULLY_CONNECTED;
-    xnnpack_options.flags |= TFLITE_XNNPACK_DELEGATE_FLAG_ENABLE_SUBGRAPH_RESHAPING;
     xnnpack_options.flags |= TFLITE_XNNPACK_DELEGATE_FLAG_ENABLE_LATEST_OPERATORS;
     xnnpack_options.flags |= TFLITE_XNNPACK_DELEGATE_FLAG_VARIABLE_OPERATORS;
 
